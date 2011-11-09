@@ -24,6 +24,7 @@
 
 package org.jenkins_ci.plugins.flexible_publish;
 
+import hudson.DescriptorExtensionList;
 import hudson.Extension;
 import hudson.Launcher;
 import hudson.model.AbstractBuild;
@@ -35,6 +36,7 @@ import hudson.model.Descriptor;
 import hudson.model.Hudson;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Publisher;
+import org.jenkins_ci.plugins.run_condition.BuildStepRunner;
 import org.jenkins_ci.plugins.run_condition.RunCondition;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.Stapler;
@@ -47,17 +49,15 @@ import java.util.List;
 
 public class ConditionalPublisher implements Describable<ConditionalPublisher> {
 
-    private static String getDisplayName(final Describable describable) {
-        return describable.getDescriptor().getDisplayName();
-    }
-
     private final RunCondition condition;
     private final Publisher publisher;
+    private final BuildStepRunner runner;
 
     @DataBoundConstructor
-    public ConditionalPublisher(final RunCondition condition, final Publisher publisher) {
+    public ConditionalPublisher(final RunCondition condition, final Publisher publisher, final BuildStepRunner runner) {
         this.condition = condition;
         this.publisher = publisher;
+        this.runner = runner;
     }
 
     public RunCondition getCondition() {
@@ -66,6 +66,10 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher> {
 
     public Publisher getPublisher() {
         return publisher;
+    }
+
+    public BuildStepRunner getRunner() {
+        return runner;
     }
 
     public ConditionalPublisherDescriptor getDescriptor() {
@@ -77,32 +81,12 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher> {
     }
 
     public boolean prebuild(final AbstractBuild<?, ?> build, final BuildListener listener) {
-        if (condition.runPrebuild(build, listener)) {
-            logRunning(listener, Messages.stage_prebuild());
-            return publisher.prebuild(build, listener);
-        } else {
-            logNotRunning(listener, Messages.stage_prebuild());
-            return true;
-        }
+        return runner.prebuild(condition, publisher, build, listener);
     }
 
     public boolean perform(final AbstractBuild<?, ?> build, final Launcher launcher, final BuildListener listener)
                                                                                                 throws InterruptedException, IOException {
-        if (condition.runPerform(build, listener)) {
-            logRunning(listener, Messages.stage_perform());
-            return publisher.perform(build, launcher, listener);
-        } else {
-            logNotRunning(listener, Messages.stage_perform());
-            return true;
-        }
-    }
-
-    private void logRunning(final BuildListener listener, final String stage) {
-        listener.getLogger().println(Messages.condition_true(getDisplayName(condition), stage, getDisplayName(publisher)));
-    }
-
-    private void logNotRunning(final BuildListener listener, final String stage) {
-        listener.getLogger().println(Messages.condition_false(getDisplayName(condition), stage, getDisplayName(publisher)));
+        return runner.perform(condition, publisher, build, launcher, listener);
     }
 
     @Extension
@@ -111,6 +95,10 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher> {
         @Override
         public String getDisplayName() {
             return "Never seen - one hopes :-)";
+        }
+
+        public DescriptorExtensionList<BuildStepRunner, BuildStepRunner.BuildStepRunnerDescriptor> getBuildStepRunners() {
+            return BuildStepRunner.all();
         }
 
         public List<? extends Descriptor<? extends RunCondition>> getRunConditions() {

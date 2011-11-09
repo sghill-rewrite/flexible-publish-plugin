@@ -1,5 +1,3 @@
-<?jelly escape-by-default='true'?>
-
 <!--
   ~ The MIT License
   ~
@@ -24,18 +22,7 @@
   ~ THE SOFTWARE.
   -->
 
-<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
-
-    <f:entry>
-        <f:dropdownDescriptorSelector title="${%runCondition}" field="condition" descriptors="${descriptor.runConditions}"/>
-    </f:entry>
-    <f:advanced>
-    <f:entry>
-        <f:dropdownDescriptorSelector title="${%runner}" field="runner" descriptors="${descriptor.buildStepRunners}"/>
-    </f:entry>
-    </f:advanced>
-    <f:entry>
-        <f:dropdownDescriptorSelector title="${%publisher}" field="publisher" descriptors="${descriptor.allowedPublishers}"/>
-    </f:entry>
-
-</j:jelly>
+<div>If the evaluation of a run condition fails, should the build fail, be marked unstable, run the publisher ...
+<p>A run condition evaluation may fail to run cleanly - especially if it is dependent on expanding tokens provided by the Token Macro Plugin
+   and the values are expected to be present or look like a certain type i.e. be a number.<br />
+</p></div>
