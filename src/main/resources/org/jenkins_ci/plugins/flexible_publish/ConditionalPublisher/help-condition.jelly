@@ -24,8 +24,11 @@
   ~ THE SOFTWARE.
   -->
 
-<j:jelly xmlns:j="jelly:core" xmlns:cond="/lib/runConditionPlugin">
+<j:jelly xmlns:j="jelly:core">
 
-    <cond:help/>
+    <help xmlns="/lib/runConditionPlugin"/>
+    <hr />
+    <h3>Available Token Macros</h3>
+    <help xmlns="/lib/token-macro"/>
 
 </j:jelly>
