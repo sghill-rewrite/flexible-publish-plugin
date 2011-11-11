@@ -44,9 +44,9 @@ public class DefaultPublisherDescriptorLister implements PublisherDescriptorList
     public DefaultPublisherDescriptorLister() {
     }
 
-    public List<? extends Descriptor<? extends BuildStep>> getAllowedPublishers() {
+    public List<? extends Descriptor<? extends BuildStep>> getAllowedPublishers(AbstractProject<?,?> project) {
         final List<BuildStepDescriptor<? extends Publisher>> publishers = new ArrayList<BuildStepDescriptor<? extends Publisher>>();
-        AbstractProject project = Stapler.getCurrentRequest().findAncestorObject(AbstractProject.class);
+        if (project == null) return publishers;
         for (Descriptor descriptor : Publisher.all()) {
             if (descriptor instanceof FlexiblePublisher.FlexiblePublisherDescriptor) continue;
             if (!(descriptor instanceof BuildStepDescriptor)) continue;

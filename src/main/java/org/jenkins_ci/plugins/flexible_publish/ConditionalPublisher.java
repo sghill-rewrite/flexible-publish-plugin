@@ -38,6 +38,7 @@ import hudson.tasks.BuildStep;
 import org.jenkins_ci.plugins.run_condition.BuildStepRunner;
 import org.jenkins_ci.plugins.run_condition.RunCondition;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.Stapler;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -108,8 +109,9 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher> {
         }
 
         public List<? extends Descriptor<? extends BuildStep>> getAllowedPublishers() {
+            final AbstractProject project = Stapler.getCurrentRequest().findAncestorObject(AbstractProject.class);
             return Hudson.getInstance().getDescriptorByType(FlexiblePublisher.FlexiblePublisherDescriptor.class).getPublisherLister()
-                                                                                                                    .getAllowedPublishers();
+                                                                                                            .getAllowedPublishers(project);
         }
 
     }

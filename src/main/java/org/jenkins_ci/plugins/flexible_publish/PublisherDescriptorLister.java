@@ -25,6 +25,7 @@
 package org.jenkins_ci.plugins.flexible_publish;
 
 import hudson.ExtensionPoint;
+import hudson.model.AbstractProject;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
 import hudson.tasks.BuildStep;
@@ -32,5 +33,5 @@ import hudson.tasks.BuildStep;
 import java.util.List;
 
 public interface PublisherDescriptorLister extends Describable<PublisherDescriptorLister>, ExtensionPoint {
-    public List<? extends Descriptor<? extends BuildStep>> getAllowedPublishers();
+    public List<? extends Descriptor<? extends BuildStep>> getAllowedPublishers(AbstractProject<?,?> project);
 }
