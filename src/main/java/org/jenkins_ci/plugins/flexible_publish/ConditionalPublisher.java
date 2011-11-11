@@ -85,6 +85,12 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher> {
         return runner.perform(condition, publisher, build, launcher, listener);
     }
 
+    public Object readResolve() {
+        if (runner == null)
+            runner = new BuildStepRunner.Fail();
+        return this;
+    }
+
     @Extension
     public static class ConditionalPublisherDescriptor extends Descriptor<ConditionalPublisher> {
 
