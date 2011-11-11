@@ -34,27 +34,23 @@ import hudson.model.BuildListener;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
 import hudson.model.Hudson;
-import hudson.tasks.BuildStepDescriptor;
-import hudson.tasks.Publisher;
+import hudson.tasks.BuildStep;
 import org.jenkins_ci.plugins.run_condition.BuildStepRunner;
 import org.jenkins_ci.plugins.run_condition.RunCondition;
 import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.Stapler;
 
 import java.io.IOException;
-import java.lang.reflect.Constructor;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
 public class ConditionalPublisher implements Describable<ConditionalPublisher> {
 
     private final RunCondition condition;
-    private final Publisher publisher;
-    private final BuildStepRunner runner;
+    private final BuildStep publisher;
+    private BuildStepRunner runner;
 
     @DataBoundConstructor
-    public ConditionalPublisher(final RunCondition condition, final Publisher publisher, final BuildStepRunner runner) {
+    public ConditionalPublisher(final RunCondition condition, final BuildStep publisher, final BuildStepRunner runner) {
         this.condition = condition;
         this.publisher = publisher;
         this.runner = runner;
@@ -64,7 +60,7 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher> {
         return condition;
     }
 
-    public Publisher getPublisher() {
+    public BuildStep getPublisher() {
         return publisher;
     }
 
@@ -105,28 +101,9 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher> {
             return RunCondition.all();
         }
 
-        public List<? extends Descriptor<? extends Publisher>> getAllowedPublishers() {
-            final List<BuildStepDescriptor<? extends Publisher>> publishers = new ArrayList<BuildStepDescriptor<? extends Publisher>>();
-            AbstractProject project = Stapler.getCurrentRequest().findAncestorObject(AbstractProject.class);
-            for (Descriptor descriptor : Publisher.all()) {
-                if (descriptor instanceof FlexiblePublisher.FlexiblePublisherDescriptor) continue;
-                if (!(descriptor instanceof BuildStepDescriptor)) continue;
-                BuildStepDescriptor<? extends Publisher> buildStepDescriptor = (BuildStepDescriptor) descriptor;
-                // would be nice to refuse if needsToRunAfterFinalized - but that's on the publisher which does not yet exist!
-                if ((project != null) && buildStepDescriptor.isApplicable(project.getClass())) {
-                    if (hasDbc(buildStepDescriptor.clazz))
-                        publishers.add(buildStepDescriptor);
-                }
-            }
-            return publishers;
-        }
-
-        private boolean hasDbc(final Class<?> clazz) {
-            for (Constructor<?> constructor : clazz.getConstructors()) {
-                if (constructor.isAnnotationPresent(DataBoundConstructor.class))
-                    return true;
-            }
-            return false;
+        public List<? extends Descriptor<? extends BuildStep>> getAllowedPublishers() {
+            return Hudson.getInstance().getDescriptorByType(FlexiblePublisher.FlexiblePublisherDescriptor.class).getPublisherLister()
+                                                                                                                    .getAllowedPublishers();
         }
 
     }

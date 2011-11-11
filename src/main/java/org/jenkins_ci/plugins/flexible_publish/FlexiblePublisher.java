@@ -24,17 +24,22 @@
 
 package org.jenkins_ci.plugins.flexible_publish;
 
+import hudson.DescriptorExtensionList;
 import hudson.Extension;
 import hudson.Launcher;
 import hudson.matrix.MatrixProject;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
+import hudson.model.Descriptor;
+import hudson.model.Hudson;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Publisher;
 import hudson.tasks.Recorder;
+import net.sf.json.JSONObject;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.StaplerRequest;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -88,6 +93,38 @@ public class FlexiblePublisher extends Recorder {
     @Extension(ordinal = Integer.MAX_VALUE - 500)
     public static class FlexiblePublisherDescriptor extends BuildStepDescriptor<Publisher> {
 
+        public static DescriptorExtensionList<PublisherDescriptorLister, Descriptor<PublisherDescriptorLister>>
+                                                                                        getAllPublisherDescriptorListers() {
+            return Hudson.getInstance().<PublisherDescriptorLister, Descriptor<PublisherDescriptorLister>>
+                                                                                        getDescriptorList(PublisherDescriptorLister.class);
+        }
+
+        private PublisherDescriptorLister publisherLister;
+
+        @DataBoundConstructor
+        public FlexiblePublisherDescriptor(final PublisherDescriptorLister publisherLister) {
+            this.publisherLister = publisherLister;
+        }
+
+        public FlexiblePublisherDescriptor() {
+            load();
+            if (publisherLister == null)
+                publisherLister = new DefaultPublisherDescriptorLister();
+        }
+
+        public PublisherDescriptorLister getPublisherLister() {
+            return publisherLister;
+        }
+
+        @Override
+        public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
+            final FlexiblePublisherDescriptor newConfig = req.bindJSON(FlexiblePublisherDescriptor.class, json);
+            if (newConfig.publisherLister != null)
+                publisherLister = newConfig.publisherLister;
+            save();
+            return true;
+        }
+
         @Override
         public String getDisplayName() {
             return Messages.publisher_displayName();
@@ -97,6 +134,12 @@ public class FlexiblePublisher extends Recorder {
             //@TODO enable for matrix builds - requires aggregation
 //            return FreeStyleProject.class.equals(aClass);
             return !MatrixProject.class.equals(aClass) && !PROMOTION_JOB_TYPE.equals(aClass.getCanonicalName());
+        }
+
+        public Object readResolve() {
+            if (publisherLister == null)
+                publisherLister = new DefaultPublisherDescriptorLister();
+            return this;
         }
 
     }
