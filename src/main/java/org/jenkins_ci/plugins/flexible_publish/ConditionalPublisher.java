@@ -37,6 +37,7 @@ import hudson.model.Hudson;
 import hudson.tasks.BuildStep;
 import org.jenkins_ci.plugins.run_condition.BuildStepRunner;
 import org.jenkins_ci.plugins.run_condition.RunCondition;
+import org.jenkins_ci.plugins.run_condition.core.AlwaysRun;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.Stapler;
 
@@ -104,8 +105,16 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher> {
             return BuildStepRunner.all();
         }
 
+        public BuildStepRunner.BuildStepRunnerDescriptor getDefaultBuildStepRunner() {
+            return Hudson.getInstance().getDescriptorByType(BuildStepRunner.Fail.FailDescriptor.class);
+        }
+
         public List<? extends Descriptor<? extends RunCondition>> getRunConditions() {
             return RunCondition.all();
+        }
+
+        public RunCondition.RunConditionDescriptor getDefaultRunCondition() {
+            return Hudson.getInstance().getDescriptorByType(AlwaysRun.AlwaysRunDescriptor.class);
         }
 
         public List<? extends Descriptor<? extends BuildStep>> getAllowedPublishers() {
