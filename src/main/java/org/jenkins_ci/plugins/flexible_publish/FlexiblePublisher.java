@@ -76,8 +76,7 @@ public class FlexiblePublisher extends Recorder {
     @Override
     public boolean prebuild(final AbstractBuild<?, ?> build, final BuildListener listener) {
         for (ConditionalPublisher publisher : publishers)
-            if (!publisher.prebuild(build, listener))
-                return false;
+            publisher.prebuild(build, listener);
         return true;
     }
 
@@ -85,8 +84,7 @@ public class FlexiblePublisher extends Recorder {
     public boolean perform(final AbstractBuild<?, ?> build, final Launcher launcher, final BuildListener listener)
                                                                                                 throws InterruptedException, IOException {
         for (ConditionalPublisher publisher : publishers)
-            if (!publisher.perform(build, launcher, listener))
-                return false;
+            publisher.perform(build, launcher, listener);
         return true;
     }
 

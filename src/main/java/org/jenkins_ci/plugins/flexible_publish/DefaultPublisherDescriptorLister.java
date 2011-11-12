@@ -32,7 +32,6 @@ import hudson.tasks.BuildStep;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Publisher;
 import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.Stapler;
 
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
