@@ -44,6 +44,7 @@ import org.kohsuke.stapler.StaplerRequest;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 
 public class FlexiblePublisher extends Recorder {
