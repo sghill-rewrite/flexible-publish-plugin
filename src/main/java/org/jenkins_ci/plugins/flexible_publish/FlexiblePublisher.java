@@ -33,6 +33,7 @@ import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.model.Descriptor;
 import hudson.model.Hudson;
+import hudson.model.Result;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Publisher;
@@ -77,7 +78,8 @@ public class FlexiblePublisher extends Recorder {
     @Override
     public boolean prebuild(final AbstractBuild<?, ?> build, final BuildListener listener) {
         for (ConditionalPublisher publisher : publishers)
-            publisher.prebuild(build, listener);
+            if (!publisher.prebuild(build, listener))
+                setResult(build, Result.FAILURE);
         return true;
     }
 
@@ -85,8 +87,16 @@ public class FlexiblePublisher extends Recorder {
     public boolean perform(final AbstractBuild<?, ?> build, final Launcher launcher, final BuildListener listener)
                                                                                                 throws InterruptedException, IOException {
         for (ConditionalPublisher publisher : publishers)
-            publisher.perform(build, launcher, listener);
+            if (!publisher.perform(build, launcher, listener))
+                setResult(build, Result.FAILURE);
         return true;
+    }
+
+    private static void setResult(final AbstractBuild<?, ?> build, final Result result) {
+        if (build.getResult() == null)
+            build.setResult(result);
+        else
+            build.setResult(result.combine(build.getResult()));
     }
 
     @Extension(ordinal = Integer.MAX_VALUE - 500)
