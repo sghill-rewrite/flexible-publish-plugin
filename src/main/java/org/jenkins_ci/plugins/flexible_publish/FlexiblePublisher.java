@@ -45,8 +45,9 @@ import org.kohsuke.stapler.StaplerRequest;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class FlexiblePublisher extends Recorder {
 
@@ -64,7 +65,12 @@ public class FlexiblePublisher extends Recorder {
     }
 
     public BuildStepMonitor getRequiredMonitorService() {
-        return BuildStepMonitor.BUILD;
+        final Set<BuildStepMonitor> monitors = new HashSet<BuildStepMonitor>();
+        for (ConditionalPublisher cp : publishers)
+            monitors.add(cp.getPublisher().getRequiredMonitorService());
+        if (monitors.contains(BuildStepMonitor.BUILD)) return BuildStepMonitor.BUILD;
+        if (monitors.contains(BuildStepMonitor.STEP)) return BuildStepMonitor.STEP;
+        return BuildStepMonitor.NONE;
     }
 
     @Override
