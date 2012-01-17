@@ -31,6 +31,8 @@ import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Action;
 import hudson.model.BuildListener;
+import hudson.model.DependecyDeclarer;
+import hudson.model.DependencyGraph;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
 import hudson.model.Hudson;
@@ -45,7 +47,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 
-public class ConditionalPublisher implements Describable<ConditionalPublisher> {
+public class ConditionalPublisher implements Describable<ConditionalPublisher>, DependecyDeclarer {
 
     private final RunCondition condition;
     private final BuildStep publisher;
@@ -76,6 +78,11 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher> {
 
     public Collection<? extends Action> getProjectActions(final AbstractProject<?, ?> project) {
         return publisher.getProjectActions(project);
+    }
+
+    public void buildDependencyGraph(final AbstractProject abstractProject, final DependencyGraph dependencyGraph) {
+        if (publisher instanceof DependecyDeclarer)
+            ((DependecyDeclarer) publisher).buildDependencyGraph(abstractProject, dependencyGraph);
     }
 
     public boolean prebuild(final AbstractBuild<?, ?> build, final BuildListener listener) {
