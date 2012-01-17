@@ -31,8 +31,6 @@ import hudson.matrix.MatrixProject;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
-import hudson.model.DependecyDeclarer;
-import hudson.model.DependencyGraph;
 import hudson.model.Descriptor;
 import hudson.model.Hudson;
 import hudson.model.Result;
@@ -51,7 +49,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class FlexiblePublisher extends Recorder implements DependecyDeclarer {
+public class FlexiblePublisher extends Recorder {
 
     public static final String PROMOTION_JOB_TYPE = "hudson.plugins.promoted_builds.PromotionProcess";
 
@@ -89,11 +87,6 @@ public class FlexiblePublisher extends Recorder implements DependecyDeclarer {
             if (!publisher.prebuild(build, listener))
                 setResult(build, Result.FAILURE);
         return true;
-    }
-
-    public void buildDependencyGraph(final AbstractProject abstractProject, final DependencyGraph dependencyGraph) {
-        for (ConditionalPublisher publisher : publishers)
-            publisher.buildDependencyGraph(abstractProject, dependencyGraph);
     }
 
     @Override
