@@ -37,7 +37,8 @@
     </f:entry>
     </f:advanced>
     <f:entry>
-        <f:dropdownDescriptorSelector title="${%publisher}" field="publisher" descriptors="${descriptor.allowedPublishers}"/>
+        <f:dropdownDescriptorSelector title="${%publisher}" field="publisher" descriptors="${descriptor.allowedPublishers}"
+                default="${descriptor.defaultPublisher}"/>
     </f:entry>
 
 </j:jelly>

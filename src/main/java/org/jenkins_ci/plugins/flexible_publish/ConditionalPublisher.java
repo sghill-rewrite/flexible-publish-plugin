@@ -34,6 +34,7 @@ import hudson.model.BuildListener;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
 import hudson.model.Hudson;
+import hudson.tasks.ArtifactArchiver;
 import hudson.tasks.BuildStep;
 import org.jenkins_ci.plugins.run_condition.BuildStepRunner;
 import org.jenkins_ci.plugins.run_condition.RunCondition;
@@ -121,6 +122,10 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher> {
             final AbstractProject project = Stapler.getCurrentRequest().findAncestorObject(AbstractProject.class);
             return Hudson.getInstance().getDescriptorByType(FlexiblePublisher.FlexiblePublisherDescriptor.class).getPublisherLister()
                                                                                                             .getAllowedPublishers(project);
+        }
+
+        public Descriptor<? extends BuildStep> getDefaultPublisher() {
+            return Hudson.getInstance().getDescriptorByType(ArtifactArchiver.DescriptorImpl.class);
         }
 
     }
