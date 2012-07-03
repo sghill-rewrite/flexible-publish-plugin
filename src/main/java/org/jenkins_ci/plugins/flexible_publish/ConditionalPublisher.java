@@ -40,10 +40,10 @@ import org.jenkins_ci.plugins.run_condition.BuildStepRunner;
 import org.jenkins_ci.plugins.run_condition.RunCondition;
 import org.jenkins_ci.plugins.run_condition.core.AlwaysRun;
 import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.Stapler;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 public class ConditionalPublisher implements Describable<ConditionalPublisher> {
@@ -118,10 +118,11 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher> {
             return Hudson.getInstance().getDescriptorByType(AlwaysRun.AlwaysRunDescriptor.class);
         }
 
-        public List<? extends Descriptor<? extends BuildStep>> getAllowedPublishers() {
-            final AbstractProject project = Stapler.getCurrentRequest().findAncestorObject(AbstractProject.class);
+        public List<? extends Descriptor<? extends BuildStep>> getAllowedPublishers(Object project) {
+            if (!(project instanceof AbstractProject))
+                return Collections.singletonList(getDefaultPublisher());
             return Hudson.getInstance().getDescriptorByType(FlexiblePublisher.FlexiblePublisherDescriptor.class).getPublisherLister()
-                                                                                                            .getAllowedPublishers(project);
+                                                                                                            .getAllowedPublishers((AbstractProject) project);
         }
 
         public Descriptor<? extends BuildStep> getDefaultPublisher() {
