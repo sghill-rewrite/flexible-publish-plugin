@@ -55,14 +55,14 @@ public class FlexiblePublisher extends Recorder implements DependecyDeclarer{
 
     public static final String PROMOTION_JOB_TYPE = "hudson.plugins.promoted_builds.PromotionProcess";
 
-    private ArrayList<ConditionalPublisher> publishers;
+    private List<ConditionalPublisher> publishers;
 
     @DataBoundConstructor
-    public FlexiblePublisher(final ArrayList<ConditionalPublisher> publishers) {
+    public FlexiblePublisher(final List<ConditionalPublisher> publishers) {
         this.publishers = publishers;
     }
 
-    public ArrayList<ConditionalPublisher> getPublishers() {
+    public List<ConditionalPublisher> getPublishers() {
         return publishers;
     }
 
