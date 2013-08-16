@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.jenkins_ci.plugins.run_condition.RunCondition;
+import org.jenkins_ci.plugins.run_condition.BuildStepRunner;
 
 import hudson.model.AbstractProject;
 import hudson.model.DependencyGraph;
@@ -40,10 +41,12 @@ public class ConditionalDependencyGraphWrapper extends DependencyGraph
 {
     private DependencyGraph graph;
     private RunCondition condition;
+    private BuildStepRunner runner;
     
-    public ConditionalDependencyGraphWrapper(DependencyGraph graph, RunCondition condition) {
+    public ConditionalDependencyGraphWrapper(DependencyGraph graph, RunCondition condition, BuildStepRunner runner) {
         this.graph = graph;
         this.condition = condition;
+        this.runner = runner;
     }
     
     /**
@@ -53,7 +56,7 @@ public class ConditionalDependencyGraphWrapper extends DependencyGraph
      */
     @Override
     public void addDependency(Dependency dep) {
-        graph.addDependency(new ConditionalDependencyWrapper(dep, condition));
+        graph.addDependency(new ConditionalDependencyWrapper(dep, condition, runner));
     }
     
     @Override

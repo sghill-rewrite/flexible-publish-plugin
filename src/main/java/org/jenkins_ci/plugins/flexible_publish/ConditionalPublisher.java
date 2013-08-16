@@ -136,7 +136,7 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
     public void buildDependencyGraph(AbstractProject owner, DependencyGraph graph) {
         if (publisher instanceof DependecyDeclarer) {
             ((DependecyDeclarer)publisher).buildDependencyGraph(owner,
-                    new ConditionalDependencyGraphWrapper(graph, condition));
+                    new ConditionalDependencyGraphWrapper(graph, condition, runner));
         }
     }
 

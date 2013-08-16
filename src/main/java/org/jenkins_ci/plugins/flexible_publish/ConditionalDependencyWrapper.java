@@ -23,19 +23,25 @@
  */
 package org.jenkins_ci.plugins.flexible_publish;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.jenkins_ci.plugins.run_condition.RunCondition;
+import org.jenkins_ci.plugins.run_condition.BuildStepRunner;
 
+import hudson.Launcher;
 import hudson.model.DependencyGraph.Dependency;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
+import hudson.model.Descriptor;
 import hudson.model.Action;
 import hudson.model.BuildListener;
 import hudson.model.StreamBuildListener;
 import hudson.model.TaskListener;
+import hudson.tasks.BuildStepDescriptor;
+import hudson.tasks.Builder;
 import hudson.util.NullStream;
 
 /**
@@ -45,11 +51,13 @@ public class ConditionalDependencyWrapper extends Dependency {
     private static Logger LOGGER = Logger.getLogger(ConditionalDependencyWrapper.class.getName());
     private Dependency dep;
     private RunCondition condition;
+    private BuildStepRunner runner;
     
-    public ConditionalDependencyWrapper(Dependency dep, RunCondition condition) {
+    public ConditionalDependencyWrapper(Dependency dep, RunCondition condition, BuildStepRunner runner) {
         super(dep.getUpstreamProject(), dep.getDownstreamProject());
         this.dep = dep;
         this.condition = condition;
+        this.runner = runner;
     }
     
     /**
@@ -74,7 +82,14 @@ public class ConditionalDependencyWrapper extends Dependency {
         }
         
         try {
-            if (condition.runPerform(build, buildListener)) {
+            MarkPerformedBuilder marker = new MarkPerformedBuilder();
+            
+            // launcher is not used by condition or runner or marker,
+            // this never cause NPE.
+            Launcher launcher = null;
+            runner.perform(condition, marker, build, launcher, buildListener);
+            
+            if (marker.isPerformed()) {
                 return dep.shouldTriggerBuild(build, listener, actions);
             } else {
                 return false;
@@ -115,4 +130,41 @@ public class ConditionalDependencyWrapper extends Dependency {
     public boolean pointsItself() {
         return dep.pointsItself();
     }
+    
+    /**
+     * Used with {@link BuildStepRunner}.
+     * 
+     * Stores whether perform is executed.
+     */
+    private static class MarkPerformedBuilder extends Builder {
+        private boolean performed = false;
+        
+        public boolean isPerformed() {
+            return performed;
+        }
+        
+        @Override
+        public boolean perform(AbstractBuild<?, ?> build, Launcher launcher,
+                BuildListener listener) throws InterruptedException, IOException {
+            performed = true;
+            return true;
+        }
+        
+        private static final Descriptor<Builder> DESCRIPTOR =
+                new BuildStepDescriptor<Builder>() {
+            @Override
+            public boolean isApplicable(Class<? extends AbstractProject> jobType) {
+                return true;
+            }
+            
+            @Override
+            public String getDisplayName() {
+                return "Builder to mark whether executed";
+            }
+        };
+        @Override
+        public Descriptor<Builder> getDescriptor() {
+            return DESCRIPTOR;
+        }
+    };
 }
