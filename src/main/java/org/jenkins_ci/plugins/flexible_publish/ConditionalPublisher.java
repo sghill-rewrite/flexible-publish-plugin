@@ -27,6 +27,7 @@ package org.jenkins_ci.plugins.flexible_publish;
 import hudson.DescriptorExtensionList;
 import hudson.Extension;
 import hudson.Launcher;
+import hudson.matrix.MatrixProject;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Action;
@@ -40,6 +41,7 @@ import org.jenkins_ci.plugins.run_condition.BuildStepRunner;
 import org.jenkins_ci.plugins.run_condition.RunCondition;
 import org.jenkins_ci.plugins.run_condition.core.AlwaysRun;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.Stapler;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -51,12 +53,25 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher> {
     private final RunCondition condition;
     private final BuildStep publisher;
     private BuildStepRunner runner;
+    
+    // used for multiconfiguration projects with MatrixAggregatable.
+    // if null, used condition and publlisher.
+    private final RunCondition aggregationCondition;
+    private final BuildStepRunner aggregationRunner;
 
     @DataBoundConstructor
-    public ConditionalPublisher(final RunCondition condition, final BuildStep publisher, final BuildStepRunner runner) {
+    public ConditionalPublisher(final RunCondition condition, final BuildStep publisher, final BuildStepRunner runner,
+            boolean configuredAggregation, final RunCondition aggregationCondition, final BuildStepRunner aggregationRunner) {
         this.condition = condition;
         this.publisher = publisher;
         this.runner = runner;
+        if (configuredAggregation) {
+            this.aggregationCondition = aggregationCondition;
+            this.aggregationRunner = aggregationRunner;
+        } else {
+            this.aggregationCondition = null;
+            this.aggregationRunner = null;
+        }
     }
 
     public RunCondition getCondition() {
@@ -69,6 +84,18 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher> {
 
     public BuildStepRunner getRunner() {
         return runner;
+    }
+
+    public RunCondition getAggregationCondition() {
+        return aggregationCondition;
+    }
+
+    public BuildStepRunner getAggregationRunner() {
+        return aggregationRunner;
+    }
+
+    public boolean isConfiguredAggregation() {
+        return getAggregationCondition() != null;
     }
 
     public ConditionalPublisherDescriptor getDescriptor() {
@@ -129,6 +156,11 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher> {
             return Hudson.getInstance().getDescriptorByType(ArtifactArchiver.DescriptorImpl.class);
         }
 
+        public boolean isMatrixProject() {
+            // Determine the configuring project from the request url.
+            AbstractProject<?,?> project = Stapler.getCurrentRequest().findAncestorObject(AbstractProject.class);
+            return (project instanceof MatrixProject);
+        }
     }
 
 }
