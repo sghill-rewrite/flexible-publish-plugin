@@ -40,7 +40,7 @@
                 default="${descriptor.defaultBuildStepRunner}"/>
     </f:entry>
     </f:advanced>
-    <j:if test="${descriptor.matrixProject}">
+    <j:if test="${descriptor.isMatrixProject(it)}">
       <f:optionalBlock inline="true" field="configuredAggregation" title="${%configureForParent}" checked="${instance.configuredForMatrixParent}">
         <f:entry>
           <f:dropdownDescriptorSelector title="${%runConditionForParent}" field="aggregationCondition" descriptors="${descriptor.runConditions}"

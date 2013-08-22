@@ -160,10 +160,8 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher> {
             return Hudson.getInstance().getDescriptorByType(ArtifactArchiver.DescriptorImpl.class);
         }
 
-        public boolean isMatrixProject() {
-            // Determine the configuring project from the request url.
-            AbstractProject<?,?> project = Stapler.getCurrentRequest().findAncestorObject(AbstractProject.class);
-            return (project instanceof MatrixProject);
+        public boolean isMatrixProject(Object it) {
+            return (it instanceof MatrixProject);
         }
     }
 
