@@ -59,6 +59,10 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher> {
     private final RunCondition aggregationCondition;
     private final BuildStepRunner aggregationRunner;
 
+    public ConditionalPublisher(final RunCondition condition, final BuildStep publisher, final BuildStepRunner runner) {
+        this(condition, publisher, runner, false, null, null);
+    }
+    
     @DataBoundConstructor
     public ConditionalPublisher(final RunCondition condition, final BuildStep publisher, final BuildStepRunner runner,
             boolean configuredAggregation, final RunCondition aggregationCondition, final BuildStepRunner aggregationRunner) {
