@@ -51,10 +51,10 @@ public class DefaultPublisherDescriptorLister implements PublisherDescriptorList
     public List<? extends Descriptor<? extends BuildStep>> getAllowedPublishers(AbstractProject<?,?> project) {
         final List<BuildStepDescriptor<? extends Publisher>> publishers = new ArrayList<BuildStepDescriptor<? extends Publisher>>();
         if (project == null) return publishers;
-        for (Descriptor descriptor : Publisher.all()) {
+        for (Descriptor<Publisher> descriptor : Publisher.all()) {
             if (!(descriptor instanceof BuildStepDescriptor)) continue;
             if (EXCLUSIONS.contains(descriptor.getClass().getCanonicalName())) continue;
-            BuildStepDescriptor<? extends Publisher> buildStepDescriptor = (BuildStepDescriptor) descriptor;
+            BuildStepDescriptor<? extends Publisher> buildStepDescriptor = (BuildStepDescriptor<? extends Publisher>) descriptor;
             // would be nice to refuse if needsToRunAfterFinalized - but that's on the publisher which does not yet exist!
             if (buildStepDescriptor.isApplicable(project.getClass())) {
                 if (hasDbc(buildStepDescriptor.clazz))

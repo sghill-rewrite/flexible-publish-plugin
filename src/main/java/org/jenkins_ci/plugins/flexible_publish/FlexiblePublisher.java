@@ -32,6 +32,7 @@ import hudson.matrix.MatrixAggregator;
 import hudson.matrix.MatrixBuild;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
+import hudson.model.Action;
 import hudson.model.BuildListener;
 import hudson.model.DependecyDeclarer;
 import hudson.model.DependencyGraph;
@@ -81,8 +82,8 @@ public class FlexiblePublisher extends Recorder implements DependecyDeclarer, Ma
     }
 
     @Override
-    public Collection getProjectActions(final AbstractProject<?, ?> project) {
-        final List actions = new ArrayList();
+    public Collection<? extends Action> getProjectActions(final AbstractProject<?, ?> project) {
+        final List<Action> actions = new ArrayList<Action>();
         for (ConditionalPublisher publisher : publishers)
             actions.addAll(publisher.getProjectActions(project));
         return actions;
@@ -110,6 +111,11 @@ public class FlexiblePublisher extends Recorder implements DependecyDeclarer, Ma
             build.setResult(result);
         else
             build.setResult(result.combine(build.getResult()));
+    }
+
+    @Override
+    public FlexiblePublisherDescriptor getDescriptor() {
+        return (FlexiblePublisherDescriptor)super.getDescriptor();
     }
 
     @Extension(ordinal = Integer.MAX_VALUE - 500)
@@ -152,6 +158,8 @@ public class FlexiblePublisher extends Recorder implements DependecyDeclarer, Ma
             return Messages.publisher_displayName();
         }
 
+        @SuppressWarnings("rawtypes")
+        @Override
         public boolean isApplicable(final Class<? extends AbstractProject> aClass) {
             return !PROMOTION_JOB_TYPE.equals(aClass.getCanonicalName());
         }
@@ -164,6 +172,8 @@ public class FlexiblePublisher extends Recorder implements DependecyDeclarer, Ma
 
     }
 
+    @SuppressWarnings("rawtypes")
+    @Override
     public void buildDependencyGraph(AbstractProject owner, DependencyGraph graph) {
         for(ConditionalPublisher publisher: publishers) {
             publisher.buildDependencyGraph(owner, graph);

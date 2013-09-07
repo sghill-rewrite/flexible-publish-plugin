@@ -67,6 +67,7 @@ public class ConditionalDependencyWrapper extends Dependency {
      * 
      * @see hudson.model.DependencyGraph.Dependency#shouldTriggerBuild(hudson.model.AbstractBuild, hudson.model.TaskListener, java.util.List)
      */
+    @SuppressWarnings("rawtypes")
     @Override
     public boolean shouldTriggerBuild(AbstractBuild build,
             TaskListener listener, List<Action> actions) {
@@ -116,11 +117,13 @@ public class ConditionalDependencyWrapper extends Dependency {
         return dep.hashCode() * 23 + condition.hashCode();
     }
     
+    @SuppressWarnings("rawtypes")
     @Override
     public AbstractProject getDownstreamProject() {
         return dep.getDownstreamProject();
     }
     
+    @SuppressWarnings("rawtypes")
     @Override
     public AbstractProject getUpstreamProject() {
         return dep.getUpstreamProject();
@@ -152,6 +155,7 @@ public class ConditionalDependencyWrapper extends Dependency {
         
         private static final Descriptor<Builder> DESCRIPTOR =
                 new BuildStepDescriptor<Builder>() {
+            @SuppressWarnings("rawtypes")
             @Override
             public boolean isApplicable(Class<? extends AbstractProject> jobType) {
                 return true;

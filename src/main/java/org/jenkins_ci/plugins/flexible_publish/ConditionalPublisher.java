@@ -154,7 +154,7 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
             if (!(project instanceof AbstractProject))
                 return Collections.singletonList(getDefaultPublisher());
             return Hudson.getInstance().getDescriptorByType(FlexiblePublisher.FlexiblePublisherDescriptor.class).getPublisherLister()
-                                                                                                            .getAllowedPublishers((AbstractProject) project);
+                                                                                                            .getAllowedPublishers((AbstractProject<?,?>) project);
         }
 
         public Descriptor<? extends BuildStep> getDefaultPublisher() {
@@ -166,6 +166,8 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
         }
     }
 
+    @SuppressWarnings("rawtypes")
+    @Override
     public void buildDependencyGraph(AbstractProject owner, DependencyGraph graph) {
         if (publisher instanceof DependecyDeclarer) {
             ((DependecyDeclarer)publisher).buildDependencyGraph(owner,

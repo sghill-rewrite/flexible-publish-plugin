@@ -64,6 +64,7 @@ public class ConditionalDependencyGraphWrapper extends DependencyGraph
         graph.build();
     }
     
+    @SuppressWarnings("rawtypes")
     @Override
     public int compare(AbstractProject o1, AbstractProject o2) {
         return graph.compare(o1, o2);
@@ -74,36 +75,43 @@ public class ConditionalDependencyGraphWrapper extends DependencyGraph
         return graph.getComputationalData(key);
     }
     
+    @SuppressWarnings("rawtypes")
     @Override
     public List<AbstractProject> getDownstream(AbstractProject p) {
         return graph.getDownstream(p);
     }
     
+    @SuppressWarnings("rawtypes")
     @Override
     public List<Dependency> getDownstreamDependencies(AbstractProject p) {
         return graph.getDownstreamDependencies(p);
     }
     
+    @SuppressWarnings("rawtypes")
     @Override
     public Set<AbstractProject> getTransitiveDownstream(AbstractProject src) {
         return graph.getTransitiveDownstream(src);
     }
     
+    @SuppressWarnings("rawtypes")
     @Override
     public Set<AbstractProject> getTransitiveUpstream(AbstractProject src) {
         return graph.getTransitiveUpstream(src);
     }
     
+    @SuppressWarnings("rawtypes")
     @Override
     public List<AbstractProject> getUpstream(AbstractProject p) {
         return graph.getUpstream(p);
     }
     
+    @SuppressWarnings("rawtypes")
     @Override
     public List<Dependency> getUpstreamDependencies(AbstractProject p) {
         return graph.getUpstreamDependencies(p);
     }
     
+    @SuppressWarnings("rawtypes")
     @Override
     public boolean hasIndirectDependencies(AbstractProject src, AbstractProject dst) {
         return graph.hasIndirectDependencies(src, dst);

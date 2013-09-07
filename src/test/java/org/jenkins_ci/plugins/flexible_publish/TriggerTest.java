@@ -26,8 +26,6 @@ package org.jenkins_ci.plugins.flexible_publish;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
-import groovy.mock.interceptor.MockProxyMetaClass;
-import hudson.model.DependencyGraph;
 import hudson.model.FreeStyleBuild;
 import hudson.model.Result;
 import hudson.model.BooleanParameterDefinition;

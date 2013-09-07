@@ -55,6 +55,7 @@ class MarkPerformedBuilder extends Builder {
     
     private static final Descriptor<Builder> DESCRIPTOR =
             new BuildStepDescriptor<Builder>() {
+        @SuppressWarnings("rawtypes")
         @Override
         public boolean isApplicable(Class<? extends AbstractProject> jobType) {
             return true;

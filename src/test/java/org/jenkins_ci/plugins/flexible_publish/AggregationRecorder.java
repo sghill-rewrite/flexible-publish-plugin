@@ -37,7 +37,6 @@ import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Action;
 import hudson.model.BuildListener;
-import hudson.tasks.BuildStep;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Publisher;
@@ -78,9 +77,15 @@ public class AggregationRecorder extends Recorder implements MatrixAggregatable 
             Launcher launcher, BuildListener listener) {
         return new Aggregator(build, launcher, listener);
     }
-    
+
+    @Override
+    public DescriptorImpl getDescriptor() {
+        return (DescriptorImpl)super.getDescriptor();
+    }
+
     @Extension
     public static class DescriptorImpl extends BuildStepDescriptor<Publisher> {
+        @SuppressWarnings("rawtypes")
         @Override
         public boolean isApplicable(Class<? extends AbstractProject> jobType) {
             return true;

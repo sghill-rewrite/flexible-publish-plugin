@@ -27,7 +27,6 @@ package org.jenkins_ci.plugins.flexible_publish;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
-import hudson.matrix.Axis;
 import hudson.matrix.AxisList;
 import hudson.matrix.MatrixConfiguration;
 import hudson.matrix.MatrixRun;
