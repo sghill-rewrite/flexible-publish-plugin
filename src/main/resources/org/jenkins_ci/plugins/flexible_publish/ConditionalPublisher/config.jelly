@@ -30,34 +30,24 @@
     <!-- it appears that the min var from the repeatable in flexible pub is leaking -->
     <!-- and remove does not work! <j:remove var="minimum"/> -->
     <j:set var="minimum" value="0"/>
-    <f:entry>
-        <f:dropdownDescriptorSelector title="${%runCondition}" field="condition" descriptors="${descriptor.runConditions}"
-                default="${descriptor.defaultRunCondition}"/>
-    </f:entry>
+    <f:dropdownDescriptorSelector title="${%runCondition}" field="condition" descriptors="${descriptor.runConditions}"
+            default="${descriptor.defaultRunCondition}"/>
     <f:advanced>
-    <f:entry>
-        <f:dropdownDescriptorSelector title="${%runner}" field="runner" descriptors="${descriptor.buildStepRunners}"
-                default="${descriptor.defaultBuildStepRunner}"/>
-    </f:entry>
+    <f:dropdownDescriptorSelector title="${%runner}" field="runner" descriptors="${descriptor.buildStepRunners}"
+            default="${descriptor.defaultBuildStepRunner}"/>
     </f:advanced>
     <j:if test="${descriptor.isMatrixProject(it)}">
       <f:optionalBlock inline="true" field="configuredAggregation" title="${%configureForParent}" checked="${instance.configuredForMatrixParent}">
-        <f:entry>
-          <f:dropdownDescriptorSelector title="${%runConditionForParent}" field="aggregationCondition" descriptors="${descriptor.runConditions}"
-                  default="${descriptor.defaultRunCondition}"/>
-        </f:entry>
+        <f:dropdownDescriptorSelector title="${%runConditionForParent}" field="aggregationCondition" descriptors="${descriptor.runConditions}"
+                default="${descriptor.defaultRunCondition}"/>
         <f:advanced>
-        <f:entry>
-          <f:dropdownDescriptorSelector title="${%runnerForParent}" field="aggregationRunner" descriptors="${descriptor.buildStepRunners}"
-                  default="${descriptor.defaultBuildStepRunner}"/>
-        </f:entry>
+        <f:dropdownDescriptorSelector title="${%runnerForParent}" field="aggregationRunner" descriptors="${descriptor.buildStepRunners}"
+                default="${descriptor.defaultBuildStepRunner}"/>
         </f:advanced>
       </f:optionalBlock>
     </j:if>
-    <f:entry>
-        <f:dropdownDescriptorSelector title="${%publisher}" field="publisher" descriptors="${descriptor.getAllowedPublishers(it)}"
-                default="${descriptor.defaultPublisher}"/>
-    </f:entry>
+    <f:dropdownDescriptorSelector title="${%publisher}" field="publisher" descriptors="${descriptor.getAllowedPublishers(it)}"
+            default="${descriptor.defaultPublisher}"/>
     </j:scope>
 
 </j:jelly>
