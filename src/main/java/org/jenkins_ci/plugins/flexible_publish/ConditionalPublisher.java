@@ -261,7 +261,7 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
                 return (BuildStep)d.newInstance(req, formData);
             } catch(ClassNotFoundException e) {
                 throw new FormException(
-                        String.format("Failed to instantiate %s", clazz),
+                        String.format("Failed to instantiate: class not found %s", clazzName),
                         e,
                         fieldName
                 );
