@@ -2,12 +2,12 @@
 Specifies a condition for execution on the parent build.
 When a publisher works on a multi-configuration project, it runs in two ways in general:
 <ul>
-  <li>Runs on a build for each axe combination.</li>
-  <li>Runs on a build for whole the project. It is often called aggregation.</li>
+  <li>Runs on a build for each axes combination.</li>
+  <li>Runs on a parent build, which is the build for whole the project. It is often called aggregation. Not every publisher supports this as this requires pubishers extra implementation for multi-configuration projects.</li>
 </ul>
-For example, "Publish JUnit test result report" works in following two ways:
+For example, "Publish JUnit test result report" is designed for multi-configuration projects and works in following two ways:
 <ul>
   <li>Summarize JUnit results generated in a build with a particular axe combination.</li>
-  <li>Summarize results of builds of all the axe combination as a result of whole the project.</li>
+  <li>Summarize results of builds of all the axes combinations as a result of whole the project.</li>
 </ul>
 </div>

@@ -36,6 +36,7 @@ import hudson.model.Action;
 import hudson.model.BuildListener;
 import hudson.model.DependecyDeclarer;
 import hudson.model.DependencyGraph;
+import hudson.model.Describable;
 import hudson.model.Descriptor;
 import hudson.model.Hudson;
 import hudson.model.Result;
@@ -248,6 +249,22 @@ public class FlexiblePublisher extends Recorder implements DependecyDeclarer, Ma
         
         for (ConditionalPublisher cp: getPublishers()) {
             if (!(cp.getPublisher() instanceof MatrixAggregatable)) {
+                if (cp.isConfiguredAggregation()) {
+                    // Condition for Matrix Configuration is configured,
+                    // but this publisher does not support aggregation!
+                    if (cp.getPublisher() instanceof Describable<?>) {
+                        listener.getLogger().println(String.format(
+                                "[%s] WARNING: Condition for Matrix Aggregation is configured for %s which does not support aggregation",
+                                getDescriptor().getDisplayName(),
+                                ((Describable<?>)cp.getPublisher()).getDescriptor().getDisplayName()
+                        ));
+                    } else {
+                        listener.getLogger().println(String.format(
+                                "[%s] WARNING: Condition for Matrix Aggregation is configured for a publisher without aggregation support",
+                                getDescriptor().getDisplayName()
+                        ));
+                    }
+                }
                 continue;
             }
             
