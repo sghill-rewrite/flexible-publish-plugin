@@ -37,8 +37,12 @@ import hudson.model.DependencyGraph;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
 import hudson.model.Hudson;
+import hudson.model.Saveable;
 import hudson.tasks.ArtifactArchiver;
 import hudson.tasks.BuildStep;
+import hudson.tasks.Builder;
+import hudson.tasks.Publisher;
+import hudson.util.DescribableList;
 import net.sf.json.JSONObject;
 
 import org.jenkins_ci.plugins.run_condition.BuildStepRunner;
@@ -48,14 +52,19 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import jenkins.model.Jenkins;
 
 public class ConditionalPublisher implements Describable<ConditionalPublisher>, DependecyDeclarer {
 
+    private static final Logger LOGGER = Logger.getLogger(ConditionalPublisher.class.getName());
+    
     private final RunCondition condition;
     private final BuildStep publisher;
     private BuildStepRunner runner;
@@ -272,9 +281,39 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
     @SuppressWarnings("rawtypes")
     @Override
     public void buildDependencyGraph(AbstractProject owner, DependencyGraph graph) {
-        if (publisher instanceof DependecyDeclarer) {
+        // As DependecyDeclarer was renamed to DependencyDeclarer in Jenkins 1.501,
+        // codes referring DependecyDeclarer may not work depending on which version of
+        // Jenkins core used.
+        // Instead, I use DescribableList#buildDependencyGraph, which is a part of
+        // Jenkins core and always work.
+        // See JENKINS-25017 for details.
+        if (publisher instanceof Publisher) {
+            DescribableList<Publisher, Descriptor<Publisher>> lst = new DescribableList<Publisher, Descriptor<Publisher>>(
+                    new Saveable() {
+                        @Override
+                        public void save() throws IOException {}
+                    },
+                    Arrays.asList((Publisher)publisher)
+            );
+            lst.buildDependencyGraph(owner, new ConditionalDependencyGraphWrapper(graph, condition, runner));
+        } else if (publisher instanceof Builder) {
+            // Case used with Any Build Step plugin (https://wiki.jenkins-ci.org/display/JENKINS/Any+Build+Step+Plugin).
+            DescribableList<Builder, Descriptor<Builder>> lst = new DescribableList<Builder, Descriptor<Builder>>(
+                    new Saveable() {
+                        @Override
+                        public void save() throws IOException {}
+                    },
+                    Arrays.asList((Builder)publisher)
+            );
+            lst.buildDependencyGraph(owner, new ConditionalDependencyGraphWrapper(graph, condition, runner));
+        } else if (publisher instanceof DependecyDeclarer) {
             ((DependecyDeclarer)publisher).buildDependencyGraph(owner,
                     new ConditionalDependencyGraphWrapper(graph, condition, runner));
+        } else {
+            LOGGER.log(Level.WARNING, "May failed to build dependency for {0} in {1}", new Object[]{
+                    publisher.getClass(),
+                    owner.getFullName()
+            });
         }
     }
 
