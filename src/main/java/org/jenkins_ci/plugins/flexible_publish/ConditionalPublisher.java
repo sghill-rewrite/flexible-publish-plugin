@@ -43,6 +43,7 @@ import hudson.tasks.BuildStep;
 import hudson.tasks.Builder;
 import hudson.tasks.Publisher;
 import hudson.util.DescribableList;
+import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
 import org.jenkins_ci.plugins.run_condition.BuildStepRunner;
@@ -52,6 +53,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -66,7 +68,9 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
     private static final Logger LOGGER = Logger.getLogger(ConditionalPublisher.class.getName());
     
     private final RunCondition condition;
-    private final BuildStep publisher;
+    @Deprecated
+    private transient BuildStep publisher;
+    private List<BuildStep> publisherList;
     private BuildStepRunner runner;
     
     // used for multiconfiguration projects with MatrixAggregatable.
@@ -74,6 +78,7 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
     private final RunCondition aggregationCondition;
     private final BuildStepRunner aggregationRunner;
 
+    @Deprecated
     public ConditionalPublisher(final RunCondition condition, final BuildStep publisher, final BuildStepRunner runner) {
         this(condition, publisher, runner, false, null, null);
     }
@@ -86,12 +91,27 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
      * @param aggregationCondition
      * @param aggregationRunner
      * @see ConditionalPublisherDescriptor#newInstance(StaplerRequest, JSONObject)
+     * @deprecated use {@link #ConditionalPublisher(RunCondition, List, BuildStepRunner, boolean, RunCondition, BuildStepRunner)} instead
      */
-    @DataBoundConstructor
+    @Deprecated
     public ConditionalPublisher(final RunCondition condition, final BuildStep publisher, final BuildStepRunner runner,
             boolean configuredAggregation, final RunCondition aggregationCondition, final BuildStepRunner aggregationRunner) {
+        this(condition, Arrays.asList(publisher), runner, configuredAggregation, aggregationCondition, aggregationRunner);
+    }
+    /**
+     * @param condition
+     * @param publisherList
+     * @param runner
+     * @param configuredAggregation
+     * @param aggregationCondition
+     * @param aggregationRunner
+     * @see ConditionalPublisherDescriptor#newInstance(StaplerRequest, JSONObject)
+     */
+    @DataBoundConstructor
+    public ConditionalPublisher(final RunCondition condition, final List<BuildStep> publisherList, final BuildStepRunner runner,
+            boolean configuredAggregation, final RunCondition aggregationCondition, final BuildStepRunner aggregationRunner) {
         this.condition = condition;
-        this.publisher = publisher;
+        this.publisherList = publisherList;
         this.runner = runner;
         if (configuredAggregation) {
             this.aggregationCondition = aggregationCondition;
@@ -106,8 +126,18 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
         return condition;
     }
 
+    /**
+     * @return
+     * @deprecated use {@link #getPublisherList()} instead
+     */
+    @Deprecated
     public BuildStep getPublisher() {
-        return publisher;
+        List<BuildStep> publisherList = getPublisherList();
+        return !publisherList.isEmpty()?publisherList.get(0):null;
+    }
+
+    public List<BuildStep> getPublisherList() {
+        return publisherList != null?publisherList:Collections.<BuildStep>emptyList();
     }
 
     public BuildStepRunner getRunner() {
@@ -131,19 +161,38 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
     }
 
     public Collection<? extends Action> getProjectActions(final AbstractProject<?, ?> project) {
-        return publisher.getProjectActions(project);
+        Collection<Action> actions = new ArrayList<Action>();
+        for (BuildStep publisher: getPublisherList()) {
+            actions.addAll(publisher.getProjectActions(project));
+        }
+        return actions;
     }
 
     public boolean prebuild(final AbstractBuild<?, ?> build, final BuildListener listener) {
-        return runner.prebuild(condition, publisher, build, listener);
+        for (BuildStep publisher: getPublisherList()) {
+            if (!runner.prebuild(condition, publisher, build, listener)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public boolean perform(final AbstractBuild<?, ?> build, final Launcher launcher, final BuildListener listener)
                                                                                                 throws InterruptedException, IOException {
-        return runner.perform(condition, publisher, build, launcher, listener);
+        for (BuildStep publisher: getPublisherList()) {
+            if (!runner.perform(condition, publisher, build, launcher, listener)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public Object readResolve() {
+        if (publisher != null) {
+            publisherList = new ArrayList<BuildStep>();
+            publisherList.add(publisher);
+            publisher = null;
+        }
         if (runner == null)
             runner = new BuildStepRunner.Fail();
         return this;
@@ -212,7 +261,7 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
                 throws hudson.model.Descriptor.FormException {
             RunCondition condition = null;
             BuildStepRunner runner = null;
-            BuildStep publisher = null;
+            List<BuildStep> publisherList = null;
             boolean configuredAggregation = false;
             RunCondition aggregationCondition = null;
             BuildStepRunner aggregationRunner = null;
@@ -226,11 +275,17 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
                     aggregationRunner = req.bindJSON(BuildStepRunner.class, formData.getJSONObject("aggregationRunner"));
                 }
                 
-                publisher = bindJSONWithDescriptor(req, formData, "publisher");
+                JSONArray a = JSONArray.fromObject(formData.get("publisherList"));
+                if (a != null && !a.isEmpty()) {
+                    publisherList = new ArrayList<BuildStep>(a.size());
+                    for(int idx = 0; idx < a.size(); ++idx) {
+                        publisherList.add(bindJSONWithDescriptor(req, a.getJSONObject(idx), "publisherList"));
+                    }
+                }
             }
             return new ConditionalPublisher(
                     condition,
-                    publisher,
+                    publisherList,
                     runner,
                     configuredAggregation,
                     aggregationCondition,
@@ -246,13 +301,12 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
          * 
          * @param req
          * @param formData
-         * @param fieldName
+         * @param fieldName used for exception information.
          * @return
          * @throws hudson.model.Descriptor.FormException
          */
         private BuildStep bindJSONWithDescriptor(StaplerRequest req, JSONObject formData, String fieldName)
                 throws hudson.model.Descriptor.FormException {
-            formData = formData.getJSONObject(fieldName);
             if (formData == null || formData.isNullObject()) {
                 return null;
             }
@@ -287,6 +341,7 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
         // Instead, I use DescribableList#buildDependencyGraph, which is a part of
         // Jenkins core and always work.
         // See JENKINS-25017 for details.
+      for (BuildStep publisher: getPublisherList()) {
         if (publisher instanceof Publisher) {
             DescribableList<Publisher, Descriptor<Publisher>> lst = new DescribableList<Publisher, Descriptor<Publisher>>(
                     new Saveable() {
@@ -315,6 +370,7 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
                     owner.getFullName()
             });
         }
+      }
     }
 
 }

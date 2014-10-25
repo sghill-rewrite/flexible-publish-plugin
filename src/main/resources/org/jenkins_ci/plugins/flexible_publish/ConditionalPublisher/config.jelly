@@ -46,8 +46,10 @@
         </f:advanced>
       </f:optionalBlock>
     </j:if>
-    <f:dropdownDescriptorSelector title="${%publisher}" field="publisher" descriptors="${descriptor.getAllowedPublishers(it)}"
-            default="${descriptor.defaultPublisher}"/>
+    <f:entry title="${%publisher}" field="publisherList">
+      <f:hetero-list name="publisherList" hasHeader="true"
+        descriptors="${descriptor.getAllowedPublishers(it)}" items="${instance.publisherList}" />
+    </f:entry>
     </j:scope>
 
 </j:jelly>
