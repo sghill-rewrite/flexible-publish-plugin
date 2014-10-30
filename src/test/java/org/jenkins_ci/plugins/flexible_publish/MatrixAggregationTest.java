@@ -40,7 +40,11 @@ import hudson.model.ParametersAction;
 import hudson.model.ParametersDefinitionProperty;
 import hudson.model.StringParameterDefinition;
 import hudson.model.StringParameterValue;
+import hudson.tasks.BuildStep;
+import hudson.tasks.ArtifactArchiver;
 
+import org.jenkins_ci.plugins.flexible_publish.testutils.AggregationRecorder;
+import org.jenkins_ci.plugins.flexible_publish.testutils.FileWriteBuilder;
 import org.jenkins_ci.plugins.run_condition.BuildStepRunner;
 import org.jenkins_ci.plugins.run_condition.core.AlwaysRun;
 import org.jenkins_ci.plugins.run_condition.core.StringsMatchCondition;
@@ -461,5 +465,53 @@ public class MatrixAggregationTest extends HudsonTestCase {
                 = build.getAction(AggregationRecorder.AggregatorAction.class);
             assertNull(aggregator);
         }
+    }
+    
+    public void testMiltipleActions() throws Exception {
+        MatrixProject p = createMatrixProject();
+        p.setAxes(new AxisList(new TextAxis("axis1", "value1", "value2")));
+        p.getPublishersList().add(new FlexiblePublisher(Arrays.asList(
+                new ConditionalPublisher(
+                        new AlwaysRun(),
+                        Arrays.<BuildStep>asList(
+                                new AggregationRecorder(),
+                                new AggregationRecorder()
+                        ),
+                        new BuildStepRunner.Fail(),
+                        false,
+                        null,
+                        null
+                )
+        )));
+        p.save();
+        
+        MatrixBuild build = p.scheduleBuild2(0).get();
+        assertBuildStatusSuccess(build);
+        assertEquals(2, build.getActions(AggregationRecorder.RecorderAction.class).size());
+    }
+    
+    
+    public void testMixedWithNonaggregateble() throws Exception {
+        MatrixProject p = createMatrixProject();
+        p.setAxes(new AxisList(new TextAxis("axis1", "value1", "value2")));
+        p.getBuildersList().add(new FileWriteBuilder("artifact.txt", "blahblahblah"));
+        p.getPublishersList().add(new FlexiblePublisher(Arrays.asList(
+                new ConditionalPublisher(
+                        new AlwaysRun(),
+                        Arrays.<BuildStep>asList(
+                                new ArtifactArchiver("**/*", "", false),
+                                new AggregationRecorder()
+                        ),
+                        new BuildStepRunner.Fail(),
+                        false,
+                        null,
+                        null
+                )
+        )));
+        p.save();
+        
+        MatrixBuild build = p.scheduleBuild2(0).get();
+        assertBuildStatusSuccess(build);
+        assertNotNull(build.getAction(AggregationRecorder.RecorderAction.class));
     }
 }
