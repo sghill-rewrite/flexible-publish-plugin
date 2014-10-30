@@ -487,7 +487,7 @@ public class MatrixAggregationTest extends HudsonTestCase {
         
         MatrixBuild build = p.scheduleBuild2(0).get();
         assertBuildStatusSuccess(build);
-        assertEquals(2, build.getActions(AggregationRecorder.RecorderAction.class).size());
+        assertEquals(2, build.getActions(AggregationRecorder.AggregatorAction.class).size());
     }
     
     
@@ -512,6 +512,6 @@ public class MatrixAggregationTest extends HudsonTestCase {
         
         MatrixBuild build = p.scheduleBuild2(0).get();
         assertBuildStatusSuccess(build);
-        assertNotNull(build.getAction(AggregationRecorder.RecorderAction.class));
+        assertNotNull(build.getAction(AggregationRecorder.AggregatorAction.class));
     }
 }
