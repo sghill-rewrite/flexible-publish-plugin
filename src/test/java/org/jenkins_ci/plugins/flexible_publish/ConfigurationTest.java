@@ -40,6 +40,7 @@ import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.FreeStyleProject;
 import hudson.model.Saveable;
+import hudson.tasks.BuildStep;
 import hudson.tasks.ArtifactArchiver;
 import hudson.tasks.BuildTrigger;
 import hudson.tasks.Mailer;
@@ -60,6 +61,8 @@ import com.gargoylesoftware.htmlunit.html.HtmlCheckBoxInput;
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlInput;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 
 /**
  *
@@ -164,6 +167,98 @@ public class ConfigurationTest extends HudsonTestCase {
         assertEquals("**/*.jar", archiver.getArtifacts());
         assertEquals("some/bad.jar", archiver.getExcludes());
         assertTrue(archiver.isLatestOnly());
+    }
+    
+    public void testMiltipleConditionsMultipleActions() throws Exception {
+        FreeStyleProject p = createFreeStyleProject();
+        ConditionalPublisher conditionalPublisher1 = new ConditionalPublisher(
+                new AlwaysRun(),
+                Arrays.<BuildStep>asList(
+                        new BuildTrigger("anotherProject1", Result.SUCCESS),
+                        new BuildTrigger("anotherProject2", Result.UNSTABLE)
+                ),
+                new BuildStepRunner.Run(), 
+                false,
+                null,
+                null
+        );
+        ConditionalPublisher conditionalPublisher2 = new ConditionalPublisher(
+                new NeverRun(),
+                Arrays.<BuildStep>asList(
+                        new ArtifactArchiver("**/*.jar", "some/bad.jar", true),
+                        new ArtifactArchiver("**/*.class", "some/bad.class", false)
+                ),
+                new BuildStepRunner.DontRun(), 
+                false,
+                null,
+                null
+        );
+        FlexiblePublisher flexiblePublisher = new FlexiblePublisher(Arrays.asList(
+                conditionalPublisher1,
+                conditionalPublisher2
+        ));
+        p.getPublishersList().add(flexiblePublisher);
+        p.save();
+        
+        reconfigure(p);
+        
+        conditionalPublisher1 = p.getPublishersList().get(FlexiblePublisher.class).getPublishers().get(0);
+        assertEquals(AlwaysRun.class, conditionalPublisher1.getCondition().getClass());
+        assertEquals(BuildStepRunner.Run.class, conditionalPublisher1.getRunner().getClass());
+        assertFalse(conditionalPublisher1.isConfiguredAggregation());
+        assertNull(conditionalPublisher1.getAggregationCondition());
+        assertNull(conditionalPublisher1.getAggregationRunner());
+        assertEquals(Arrays.<Class<?>>asList(
+                        BuildTrigger.class,
+                        BuildTrigger.class
+                ), 
+                Lists.transform(conditionalPublisher1.getPublisherList(), new Function<BuildStep, Class<?>>() {
+                    @Override
+                    public Class<?> apply(BuildStep input) {
+                        return input.getClass();
+                    }
+                })
+        );
+        {
+            BuildTrigger trigger = (BuildTrigger)conditionalPublisher1.getPublisherList().get(0);
+            assertEquals("anotherProject1", trigger.getChildProjectsValue());
+            assertEquals(Result.SUCCESS, trigger.getThreshold());
+        }
+        {
+            BuildTrigger trigger = (BuildTrigger)conditionalPublisher1.getPublisherList().get(1);
+            assertEquals("anotherProject2", trigger.getChildProjectsValue());
+            assertEquals(Result.UNSTABLE, trigger.getThreshold());
+        }
+        
+        conditionalPublisher2 = p.getPublishersList().get(FlexiblePublisher.class).getPublishers().get(1);
+        assertEquals(NeverRun.class, conditionalPublisher2.getCondition().getClass());
+        assertEquals(BuildStepRunner.DontRun.class, conditionalPublisher2.getRunner().getClass());
+        assertFalse(conditionalPublisher2.isConfiguredAggregation());
+        assertNull(conditionalPublisher2.getAggregationCondition());
+        assertNull(conditionalPublisher2.getAggregationRunner());
+        assertEquals(Arrays.<Class<?>>asList(
+                    ArtifactArchiver.class,
+                    ArtifactArchiver.class
+            ), 
+            Lists.transform(conditionalPublisher2.getPublisherList(), new Function<BuildStep, Class<?>>() {
+                @Override
+                public Class<?> apply(BuildStep input) {
+                    return input.getClass();
+                }
+            })
+        );
+        {
+            ArtifactArchiver archiver = (ArtifactArchiver)conditionalPublisher2.getPublisherList().get(0);
+            assertEquals("**/*.jar", archiver.getArtifacts());
+            assertEquals("some/bad.jar", archiver.getExcludes());
+            assertTrue(archiver.isLatestOnly());
+        }
+        {
+            ArtifactArchiver archiver = (ArtifactArchiver)conditionalPublisher2.getPublisherList().get(1);
+            assertEquals("**/*.class", archiver.getArtifacts());
+            assertEquals("some/bad.class", archiver.getExcludes());
+            assertFalse(archiver.isLatestOnly());
+        }
     }
     
     public void testMatrixWithAggregationCondition() throws Exception {

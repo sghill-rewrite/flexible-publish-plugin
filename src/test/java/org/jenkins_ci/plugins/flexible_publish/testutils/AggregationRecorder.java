@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  */
 
-package org.jenkins_ci.plugins.flexible_publish;
+package org.jenkins_ci.plugins.flexible_publish.testutils;
 
 import java.io.IOException;
 import java.util.ArrayList;

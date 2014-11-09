@@ -40,6 +40,7 @@ import hudson.model.Describable;
 import hudson.model.Descriptor;
 import hudson.model.Hudson;
 import hudson.model.Result;
+import hudson.tasks.BuildStep;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Publisher;
@@ -82,8 +83,11 @@ public class FlexiblePublisher extends Recorder implements DependecyDeclarer, Ma
 
     public BuildStepMonitor getRequiredMonitorService() {
         final Set<BuildStepMonitor> monitors = new HashSet<BuildStepMonitor>();
-        for (ConditionalPublisher cp : publishers)
-            monitors.add(cp.getPublisher().getRequiredMonitorService());
+        for (ConditionalPublisher cp : publishers) {
+            for (BuildStep publisher: cp.getPublisherList()) {
+                monitors.add(publisher.getRequiredMonitorService());
+            }
+        }
         if (monitors.contains(BuildStepMonitor.BUILD)) return BuildStepMonitor.BUILD;
         if (monitors.contains(BuildStepMonitor.STEP)) return BuildStepMonitor.STEP;
         return BuildStepMonitor.NONE;
@@ -248,15 +252,16 @@ public class FlexiblePublisher extends Recorder implements DependecyDeclarer, Ma
             = new ArrayList<ConditionalMatrixAggregator>();
         
         for (ConditionalPublisher cp: getPublishers()) {
-            if (!(cp.getPublisher() instanceof MatrixAggregatable)) {
+          for (BuildStep publisher: cp.getPublisherList()) {
+            if (!(publisher instanceof MatrixAggregatable)) {
                 if (cp.isConfiguredAggregation()) {
                     // Condition for Matrix Configuration is configured,
                     // but this publisher does not support aggregation!
-                    if (cp.getPublisher() instanceof Describable<?>) {
+                    if (publisher instanceof Describable<?>) {
                         listener.getLogger().println(String.format(
                                 "[%s] WARNING: Condition for Matrix Aggregation is configured for %s which does not support aggregation",
                                 getDescriptor().getDisplayName(),
-                                ((Describable<?>)cp.getPublisher()).getDescriptor().getDisplayName()
+                                ((Describable<?>)publisher).getDescriptor().getDisplayName()
                         ));
                     } else {
                         listener.getLogger().println(String.format(
@@ -294,13 +299,14 @@ public class FlexiblePublisher extends Recorder implements DependecyDeclarer, Ma
             }
             
             MatrixAggregator baseAggregator
-                = ((MatrixAggregatable)cp.getPublisher()).createAggregator(build, launcher, listener);
+                = ((MatrixAggregatable)publisher).createAggregator(build, launcher, listener);
             if (baseAggregator == null) {
                 continue;
             }
             aggregatorList.add(new ConditionalMatrixAggregator(
                     build, launcher, listener, cp, baseAggregator
             ));
+          }
         }
         
         if (aggregatorList.isEmpty()) {

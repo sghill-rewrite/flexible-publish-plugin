@@ -34,6 +34,7 @@ import hudson.model.Cause;
 import hudson.model.FreeStyleProject;
 import hudson.model.ParametersAction;
 import hudson.model.ParametersDefinitionProperty;
+import hudson.tasks.BuildStep;
 import hudson.tasks.BuildTrigger;
 
 import org.jenkins_ci.plugins.run_condition.RunCondition;
@@ -173,6 +174,110 @@ public class TriggerTest extends HudsonTestCase {
             
             waitUntilNoActivityUpTo(60 * 1000);
             assertNull(p2.getLastBuild());
+        }
+    }
+    
+    public void testRunConditionWithMultipleActions() throws Exception{
+        // p1 triggers p2 and p3 if p1 is triggered with parameter "triggerThem" is true.
+        FreeStyleProject p1 = createFreeStyleProject();
+        FreeStyleProject p2 = createFreeStyleProject();
+        FreeStyleProject p3 = createFreeStyleProject();
+        
+        p1.addProperty(new ParametersDefinitionProperty(new BooleanParameterDefinition(
+                "triggerThem",
+                false,
+                "Whether trigger p2 and p3"
+        )));
+        
+        p1.getPublishersList().add(new FlexiblePublisher(Arrays.asList(
+                new ConditionalPublisher(
+                        new StringsMatchCondition("${triggerThem}", "true", false),
+                        Arrays.<BuildStep>asList(
+                                new BuildTrigger(p2.getName(), Result.SUCCESS),
+                                new BuildTrigger(p3.getName(), Result.UNSTABLE)
+                        ),
+                        new BuildStepRunner.Run(),
+                        false,
+                        null,
+                        null
+                )
+        )));
+        
+        p1.save();
+        
+        jenkins.rebuildDependencyGraph();
+        
+        // Trigger p1 with triggerThem = true.
+        {
+            @SuppressWarnings("deprecation")
+            FreeStyleBuild p1Build = p1.scheduleBuild2(0, new Cause.UserCause(), new ParametersAction(
+                    new BooleanParameterValue("triggerThem", true)
+            )).get();
+            assertBuildStatusSuccess(p1Build);
+            
+            waitUntilNoActivity();
+            
+            FreeStyleBuild p2Build = p2.getLastBuild();
+            assertNotNull(p2Build);
+            {
+                Cause.UpstreamCause cause = p2Build.getCause(Cause.UpstreamCause.class);
+                assertEquals(p1.getFullName(), cause.getUpstreamProject());
+                assertEquals(p1Build.getNumber(), cause.getUpstreamBuild());
+            }
+            p2Build.delete();
+            
+            FreeStyleBuild p3Build = p3.getLastBuild();
+            assertNotNull(p3Build);
+            {
+                Cause.UpstreamCause cause = p3Build.getCause(Cause.UpstreamCause.class);
+                assertEquals(p1.getFullName(), cause.getUpstreamProject());
+                assertEquals(p1Build.getNumber(), cause.getUpstreamBuild());
+            }
+            p3Build.delete();
+        }
+        
+        // Trigger p1 with triggerThem = false
+        {
+            assertNull(p2.getLastBuild());
+            assertNull(p3.getLastBuild());
+            
+            @SuppressWarnings("deprecation")
+            FreeStyleBuild p1Build = p1.scheduleBuild2(0, new Cause.UserCause(), new ParametersAction(
+                    new BooleanParameterValue("triggerThem", false)
+            )).get();
+            assertBuildStatusSuccess(p1Build);
+            
+            waitUntilNoActivity();
+            assertNull(p2.getLastBuild());
+            assertNull(p3.getLastBuild());
+        }
+        
+        // Trigger p1 with triggerThem = true.
+        // But p2 isn't triggered when p1 is unstable
+        // And p3 is triggered even when p1 is unstable
+        // (Specification in BuildTrigger)
+        p1.getBuildersList().add(new MockBuilder(Result.UNSTABLE));
+        {
+            assertNull(p2.getLastBuild());
+            assertNull(p3.getLastBuild());
+            
+            @SuppressWarnings("deprecation")
+            FreeStyleBuild p1Build = p1.scheduleBuild2(0, new Cause.UserCause(), new ParametersAction(
+                    new BooleanParameterValue("triggerThem", true)
+            )).get();
+            assertBuildStatus(Result.UNSTABLE, p1Build);
+            
+            waitUntilNoActivity();
+            assertNull(p2.getLastBuild());
+            
+            FreeStyleBuild p3Build = p3.getLastBuild();
+            assertNotNull(p3Build);
+            {
+                Cause.UpstreamCause cause = p3Build.getCause(Cause.UpstreamCause.class);
+                assertEquals(p1.getFullName(), cause.getUpstreamProject());
+                assertEquals(p1Build.getNumber(), cause.getUpstreamBuild());
+            }
+            p3Build.delete();
         }
     }
 }
