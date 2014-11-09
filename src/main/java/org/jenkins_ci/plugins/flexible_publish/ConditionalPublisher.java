@@ -310,12 +310,13 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
             if (formData == null || formData.isNullObject()) {
                 return null;
             }
-            if (!formData.has("stapler-class")) {
-                throw new FormException("No stapler-class is specified", fieldName);
-            }
-            String clazzName = formData.getString("stapler-class");
+            String clazzName = formData.optString("$class", null);
             if (clazzName == null) {
-                throw new FormException("No stapler-class is specified", fieldName);
+              // Fall back on the legacy stapler-class attribute.
+              clazzName = formData.optString("stapler-class", null);
+            }
+            if (clazzName == null) {
+                throw new FormException("No $class is specified", fieldName);
             }
             try {
                 @SuppressWarnings("unchecked")
