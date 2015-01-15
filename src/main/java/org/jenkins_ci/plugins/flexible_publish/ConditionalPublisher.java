@@ -111,10 +111,6 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
     public ConditionalPublisher(final RunCondition condition, final List<BuildStep> publisherList, final BuildStepRunner runner,
             boolean configuredAggregation, final RunCondition aggregationCondition, final BuildStepRunner aggregationRunner) {
         this.condition = condition;
-        // Guard against inserting null publishers to the list.
-        if (publisherList == null || publisherList.contains(null)) {
-            throw new IllegalArgumentException("Must specifiy a publisher for a conditional publisher.");
-        }
         this.publisherList = publisherList;
         this.runner = runner;
         if (configuredAggregation) {
@@ -293,7 +289,9 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
                 if (a != null && !a.isEmpty()) {
                     publisherList = new ArrayList<BuildStep>(a.size());
                     for(int idx = 0; idx < a.size(); ++idx) {
-                        publisherList.add(bindJSONWithDescriptor(req, a.getJSONObject(idx), "publisherList"));
+                        BuildStep buildstep = bindJSONWithDescriptor(req, a.getJSONObject(idx), "publisherList");
+                        if (buildstep != null)
+                            publisherList.add(buildstep);
                     }
                 }
             }
