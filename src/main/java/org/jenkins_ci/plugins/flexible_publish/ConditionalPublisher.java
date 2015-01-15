@@ -111,6 +111,10 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
     public ConditionalPublisher(final RunCondition condition, final List<BuildStep> publisherList, final BuildStepRunner runner,
             boolean configuredAggregation, final RunCondition aggregationCondition, final BuildStepRunner aggregationRunner) {
         this.condition = condition;
+        // Guard against inserting null publishers to the list.
+        if (publisherList == null || publisherList.contains(null)) {
+            throw new IllegalArgumentException("Must specifiy a publisher for a conditional publisher.");
+        }
         this.publisherList = publisherList;
         this.runner = runner;
         if (configuredAggregation) {
@@ -137,9 +141,19 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
     }
 
     public List<BuildStep> getPublisherList() {
-        return publisherList != null?publisherList:Collections.<BuildStep>emptyList();
-    }
+        if (publisherList != null) {
+            // We also need to guard against any null values in the publisherList
+            // This can happen if the projects publisher list was removed, returning
+            // a list with one null element.
+            if (publisherList.contains(null)) {
+                publisherList.remove(null);
+            }
 
+            return publisherList;
+        } else {
+            return Collections.<BuildStep>emptyList();
+        }
+    }
     public BuildStepRunner getRunner() {
         return runner;
     }

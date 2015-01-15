@@ -27,6 +27,7 @@ package org.jenkins_ci.plugins.flexible_publish;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import hudson.Launcher;
@@ -53,6 +54,7 @@ import hudson.util.DescribableList;
 import org.jenkins_ci.plugins.run_condition.BuildStepRunner;
 import org.jenkins_ci.plugins.run_condition.core.AlwaysRun;
 import org.jenkins_ci.plugins.run_condition.core.NeverRun;
+import org.jvnet.hudson.test.Bug;
 import org.jvnet.hudson.test.HudsonTestCase;
 import org.jvnet.hudson.test.TestExtension;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -87,6 +89,21 @@ public class ConfigurationTest extends HudsonTestCase {
         reconfigure(p);
     }
     
+    @Bug(19985)
+    public void testNullCondition() throws  Exception {
+      FreeStyleProject p = createFreeStyleProject();
+      try {
+        ConditionalPublisher conditionalPublisher = new ConditionalPublisher(new AlwaysRun(),
+                Collections.<BuildStep>singletonList(null),
+                null,
+                false,
+                null,
+                null);
+
+          fail("Should throw Exception when null publishers are added.");
+      } catch (IllegalArgumentException e) { }
+    }
+  
     public void testSingleCondition() throws Exception {
         FreeStyleProject p = createFreeStyleProject();
         BuildTrigger trigger = new BuildTrigger("anotherProject", Result.SUCCESS);
