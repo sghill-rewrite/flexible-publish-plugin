@@ -198,6 +198,7 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
             // This can happen if the projects publisher list was removed, returning
             // a list with one null element.
             if (publisherList.contains(null)) {
+                publisherList = new ArrayList<BuildStep>(publisherList);
                 publisherList.remove(null);
             }
         }

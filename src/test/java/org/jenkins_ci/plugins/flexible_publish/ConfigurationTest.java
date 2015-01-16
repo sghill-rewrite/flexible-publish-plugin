@@ -45,6 +45,7 @@ import hudson.tasks.BuildStep;
 import hudson.tasks.ArtifactArchiver;
 import hudson.tasks.BuildTrigger;
 import hudson.tasks.Mailer;
+import hudson.tasks.Publisher;
 import hudson.tasks.junit.TestDataPublisher;
 import hudson.tasks.junit.TestResult;
 import hudson.tasks.junit.TestResultAction.Data;
@@ -92,16 +93,24 @@ public class ConfigurationTest extends HudsonTestCase {
     @Bug(19985)
     public void testNullCondition() throws  Exception {
       FreeStyleProject p = createFreeStyleProject();
-      try {
-        ConditionalPublisher conditionalPublisher = new ConditionalPublisher(new AlwaysRun(),
-                Collections.<BuildStep>singletonList(null),
-                null,
-                false,
-                null,
-                null);
+      ConditionalPublisher conditionalPublisher = new ConditionalPublisher(new AlwaysRun(),
+              Collections.<BuildStep>singletonList(null),
+              null,
+              false,
+              null,
+              null);
+      FlexiblePublisher fp = new FlexiblePublisher(Arrays.asList(conditionalPublisher));
+      p.getPublishersList().add(fp);
+      p.save();
+      jenkins.reload();
 
-          fail("Should throw Exception when null publishers are added.");
-      } catch (IllegalArgumentException e) { }
+      DescribableList<Publisher, Descriptor<Publisher>> publishersList = ((FreeStyleProject) jenkins.getItemByFullName(p.getFullName()))
+              .getPublishersList();
+      FlexiblePublisher publisher = publishersList.get(FlexiblePublisher.class);
+      List<ConditionalPublisher> publishers = publisher.getPublishers();
+      conditionalPublisher = publishers.get(0);
+      assertNotNull(conditionalPublisher.getPublisherList());
+      assertTrue(conditionalPublisher.getPublisherList().isEmpty());
     }
   
     public void testSingleCondition() throws Exception {
@@ -228,12 +237,12 @@ public class ConfigurationTest extends HudsonTestCase {
         assertEquals(Arrays.<Class<?>>asList(
                         BuildTrigger.class,
                         BuildTrigger.class
-                ), 
+                ),
                 Lists.transform(conditionalPublisher1.getPublisherList(), new Function<BuildStep, Class<?>>() {
-                    @Override
-                    public Class<?> apply(BuildStep input) {
-                        return input.getClass();
-                    }
+                  @Override
+                  public Class<?> apply(BuildStep input) {
+                    return input.getClass();
+                  }
                 })
         );
         {
@@ -254,15 +263,15 @@ public class ConfigurationTest extends HudsonTestCase {
         assertNull(conditionalPublisher2.getAggregationCondition());
         assertNull(conditionalPublisher2.getAggregationRunner());
         assertEquals(Arrays.<Class<?>>asList(
-                    ArtifactArchiver.class,
-                    ArtifactArchiver.class
-            ), 
-            Lists.transform(conditionalPublisher2.getPublisherList(), new Function<BuildStep, Class<?>>() {
-                @Override
-                public Class<?> apply(BuildStep input) {
+                        ArtifactArchiver.class,
+                        ArtifactArchiver.class
+                ),
+                Lists.transform(conditionalPublisher2.getPublisherList(), new Function<BuildStep, Class<?>>() {
+                  @Override
+                  public Class<?> apply(BuildStep input) {
                     return input.getClass();
-                }
-            })
+                  }
+                })
         );
         {
             ArtifactArchiver archiver = (ArtifactArchiver)conditionalPublisher2.getPublisherList().get(0);
@@ -401,7 +410,7 @@ public class ConfigurationTest extends HudsonTestCase {
         assertEquals(1, inputList.size());
         
         // Enable it!
-        assertTrue(((HtmlCheckBoxInput)inputList.get(0)).isChecked());
+        assertTrue(((HtmlCheckBoxInput) inputList.get(0)).isChecked());
         ((HtmlCheckBoxInput)inputList.get(0)).click();
         assertFalse(((HtmlCheckBoxInput)inputList.get(0)).isChecked());
         submit(configForm);
