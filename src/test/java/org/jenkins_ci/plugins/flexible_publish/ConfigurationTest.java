@@ -202,7 +202,7 @@ public class ConfigurationTest extends HudsonTestCase {
                 Arrays.<BuildStep>asList(
                         new BuildTrigger("anotherProject1", Result.SUCCESS),
                         new BuildTrigger("anotherProject2", Result.UNSTABLE)
-                ), 
+                ),
                 new BuildStepRunner.Run(), 
                 false,
                 null,
@@ -265,7 +265,7 @@ public class ConfigurationTest extends HudsonTestCase {
         assertEquals(Arrays.<Class<?>>asList(
                     ArtifactArchiver.class,
                     ArtifactArchiver.class
-            ),
+            ), 
             Lists.transform(conditionalPublisher2.getPublisherList(), new Function<BuildStep, Class<?>>() {
                 @Override
                 public Class<?> apply(BuildStep input) {
