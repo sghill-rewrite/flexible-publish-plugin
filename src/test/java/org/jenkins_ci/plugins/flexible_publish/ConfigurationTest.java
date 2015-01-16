@@ -202,7 +202,7 @@ public class ConfigurationTest extends HudsonTestCase {
                 Arrays.<BuildStep>asList(
                         new BuildTrigger("anotherProject1", Result.SUCCESS),
                         new BuildTrigger("anotherProject2", Result.UNSTABLE)
-                ),
+                ), 
                 new BuildStepRunner.Run(), 
                 false,
                 null,
