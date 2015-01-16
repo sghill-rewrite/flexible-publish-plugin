@@ -137,8 +137,9 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
     }
 
     public List<BuildStep> getPublisherList() {
-        return publisherList !=null?publisherList:Collections.<BuildStep>emptyList();
+        return publisherList != null?publisherList:Collections.<BuildStep>emptyList();
     }
+
     public BuildStepRunner getRunner() {
         return runner;
     }

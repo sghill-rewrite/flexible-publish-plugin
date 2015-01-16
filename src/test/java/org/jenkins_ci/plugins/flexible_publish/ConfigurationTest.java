@@ -237,12 +237,12 @@ public class ConfigurationTest extends HudsonTestCase {
         assertEquals(Arrays.<Class<?>>asList(
                         BuildTrigger.class,
                         BuildTrigger.class
-                ),
+                ), 
                 Lists.transform(conditionalPublisher1.getPublisherList(), new Function<BuildStep, Class<?>>() {
-                  @Override
-                  public Class<?> apply(BuildStep input) {
-                    return input.getClass();
-                  }
+                    @Override
+                    public Class<?> apply(BuildStep input) {
+                        return input.getClass();
+                    }
                 })
         );
         {
@@ -263,15 +263,15 @@ public class ConfigurationTest extends HudsonTestCase {
         assertNull(conditionalPublisher2.getAggregationCondition());
         assertNull(conditionalPublisher2.getAggregationRunner());
         assertEquals(Arrays.<Class<?>>asList(
-                        ArtifactArchiver.class,
-                        ArtifactArchiver.class
-                ),
-                Lists.transform(conditionalPublisher2.getPublisherList(), new Function<BuildStep, Class<?>>() {
-                  @Override
-                  public Class<?> apply(BuildStep input) {
+                    ArtifactArchiver.class,
+                    ArtifactArchiver.class
+            ),
+            Lists.transform(conditionalPublisher2.getPublisherList(), new Function<BuildStep, Class<?>>() {
+                @Override
+                public Class<?> apply(BuildStep input) {
                     return input.getClass();
-                  }
-                })
+                }
+            })
         );
         {
             ArtifactArchiver archiver = (ArtifactArchiver)conditionalPublisher2.getPublisherList().get(0);
@@ -410,7 +410,7 @@ public class ConfigurationTest extends HudsonTestCase {
         assertEquals(1, inputList.size());
         
         // Enable it!
-        assertTrue(((HtmlCheckBoxInput) inputList.get(0)).isChecked());
+        assertTrue(((HtmlCheckBoxInput)inputList.get(0)).isChecked());
         ((HtmlCheckBoxInput)inputList.get(0)).click();
         assertFalse(((HtmlCheckBoxInput)inputList.get(0)).isChecked());
         submit(configForm);
