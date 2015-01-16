@@ -137,18 +137,7 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
     }
 
     public List<BuildStep> getPublisherList() {
-        if (publisherList != null) {
-            // We also need to guard against any null values in the publisherList
-            // This can happen if the projects publisher list was removed, returning
-            // a list with one null element.
-            if (publisherList.contains(null)) {
-                publisherList.remove(null);
-            }
-
-            return publisherList;
-        } else {
-            return Collections.<BuildStep>emptyList();
-        }
+        return publisherList !=null?publisherList:Collections.<BuildStep>emptyList();
     }
     public BuildStepRunner getRunner() {
         return runner;
@@ -203,6 +192,16 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
             publisherList.add(publisher);
             publisher = null;
         }
+        
+        if (publisherList != null) {
+            // We also need to guard against any null values in the publisherList
+            // This can happen if the projects publisher list was removed, returning
+            // a list with one null element.
+            if (publisherList.contains(null)) {
+                publisherList.remove(null);
+            }
+        }
+        
         if (runner == null)
             runner = new BuildStepRunner.Fail();
         return this;
