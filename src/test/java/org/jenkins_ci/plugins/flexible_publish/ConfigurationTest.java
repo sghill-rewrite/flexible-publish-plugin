@@ -27,6 +27,7 @@ package org.jenkins_ci.plugins.flexible_publish;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import hudson.Launcher;
@@ -53,8 +54,10 @@ import hudson.util.DescribableList;
 import org.jenkins_ci.plugins.run_condition.BuildStepRunner;
 import org.jenkins_ci.plugins.run_condition.core.AlwaysRun;
 import org.jenkins_ci.plugins.run_condition.core.NeverRun;
+import org.jvnet.hudson.test.Bug;
 import org.jvnet.hudson.test.HudsonTestCase;
 import org.jvnet.hudson.test.TestExtension;
+import org.jvnet.hudson.test.recipes.LocalData;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import com.gargoylesoftware.htmlunit.html.HtmlCheckBoxInput;
@@ -467,6 +470,40 @@ public class ConfigurationTest extends HudsonTestCase {
         assertNotNull(archiver.getTestDataPublishers());
         assertEquals(1, archiver.getTestDataPublishers().size());
         assertEquals(DummyTestDataPublisher.class, archiver.getTestDataPublishers().get(0).getClass());
+    }
+    
+    @Bug(26452)
+    public void testNoPublisher() throws Exception {
+        FreeStyleProject p = createFreeStyleProject();
+        
+        p.getPublishersList().add(new FlexiblePublisher(Arrays.asList(
+                new ConditionalPublisher(
+                        new AlwaysRun(),
+                        Collections.<BuildStep>emptyList(),
+                        new BuildStepRunner.Fail(),
+                        false,
+                        null,
+                        null
+                )
+        )));
+        
+        p.save();
+        
+        // This doesn't fail till Jenkins 1.500.
+        reconfigure(p);
+        
+        assertBuildStatusSuccess(p.scheduleBuild2(0));
+        assertEquals(0, p.getPublishersList().get(FlexiblePublisher.class).getPublishers().get(0).getPublisherList().size());
+    }
+    
+    @Bug(26452)
+    @LocalData
+    public void testRecoverFrom26452() throws Exception {
+        FreeStyleProject p = jenkins.getItemByFullName("affectedBy26452", FreeStyleProject.class);
+        assertNotNull(p);
+        
+        assertBuildStatusSuccess(p.scheduleBuild2(0));
+        assertEquals(0, p.getPublishersList().get(FlexiblePublisher.class).getPublishers().get(0).getPublisherList().size());
     }
     
     public static class DummyTestDataPublisher extends TestDataPublisher {
