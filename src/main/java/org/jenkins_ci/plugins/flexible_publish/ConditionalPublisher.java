@@ -193,6 +193,17 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
             publisherList.add(publisher);
             publisher = null;
         }
+        
+        if (publisherList != null) {
+            // We also need to guard against any null values in the publisherList
+            // This can happen if the projects publisher list was removed, returning
+            // a list with one null element.
+            if (publisherList.contains(null)) {
+                publisherList = new ArrayList<BuildStep>(publisherList);
+                publisherList.remove(null);
+            }
+        }
+        
         if (runner == null)
             runner = new BuildStepRunner.Fail();
         return this;
@@ -279,7 +290,9 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
                 if (a != null && !a.isEmpty()) {
                     publisherList = new ArrayList<BuildStep>(a.size());
                     for(int idx = 0; idx < a.size(); ++idx) {
-                        publisherList.add(bindJSONWithDescriptor(req, a.getJSONObject(idx), "publisherList"));
+                        BuildStep buildstep = bindJSONWithDescriptor(req, a.getJSONObject(idx), "publisherList");
+                        if (buildstep != null)
+                            publisherList.add(buildstep);
                     }
                 }
             }

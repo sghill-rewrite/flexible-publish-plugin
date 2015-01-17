@@ -27,6 +27,7 @@ package org.jenkins_ci.plugins.flexible_publish;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import hudson.Launcher;
@@ -44,6 +45,7 @@ import hudson.tasks.BuildStep;
 import hudson.tasks.ArtifactArchiver;
 import hudson.tasks.BuildTrigger;
 import hudson.tasks.Mailer;
+import hudson.tasks.Publisher;
 import hudson.tasks.junit.TestDataPublisher;
 import hudson.tasks.junit.TestResult;
 import hudson.tasks.junit.TestResultAction.Data;
@@ -53,6 +55,7 @@ import hudson.util.DescribableList;
 import org.jenkins_ci.plugins.run_condition.BuildStepRunner;
 import org.jenkins_ci.plugins.run_condition.core.AlwaysRun;
 import org.jenkins_ci.plugins.run_condition.core.NeverRun;
+import org.jvnet.hudson.test.Bug;
 import org.jvnet.hudson.test.HudsonTestCase;
 import org.jvnet.hudson.test.TestExtension;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -87,6 +90,29 @@ public class ConfigurationTest extends HudsonTestCase {
         reconfigure(p);
     }
     
+    @Bug(19985)
+    public void testNullCondition() throws  Exception {
+      FreeStyleProject p = createFreeStyleProject();
+      ConditionalPublisher conditionalPublisher = new ConditionalPublisher(new AlwaysRun(),
+              Collections.<BuildStep>singletonList(null),
+              null,
+              false,
+              null,
+              null);
+      FlexiblePublisher fp = new FlexiblePublisher(Arrays.asList(conditionalPublisher));
+      p.getPublishersList().add(fp);
+      p.save();
+      jenkins.reload();
+
+      DescribableList<Publisher, Descriptor<Publisher>> publishersList = ((FreeStyleProject) jenkins.getItemByFullName(p.getFullName()))
+              .getPublishersList();
+      FlexiblePublisher publisher = publishersList.get(FlexiblePublisher.class);
+      List<ConditionalPublisher> publishers = publisher.getPublishers();
+      conditionalPublisher = publishers.get(0);
+      assertNotNull(conditionalPublisher.getPublisherList());
+      assertTrue(conditionalPublisher.getPublisherList().isEmpty());
+    }
+  
     public void testSingleCondition() throws Exception {
         FreeStyleProject p = createFreeStyleProject();
         BuildTrigger trigger = new BuildTrigger("anotherProject", Result.SUCCESS);
