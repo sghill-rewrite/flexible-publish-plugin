@@ -198,7 +198,7 @@ public class FlexiblePublisherTest extends HudsonTestCase {
         }
     }
     
-    public static class ThorwAbortExceptionPublisher extends Recorder {
+    public static class ThrowAbortExceptionPublisher extends Recorder {
         @Override
         public BuildStepMonitor getRequiredMonitorService() {
             return BuildStepMonitor.BUILD;
@@ -273,7 +273,7 @@ public class FlexiblePublisherTest extends HudsonTestCase {
             FreeStyleProject p = createFreeStyleProject();
             
             p.getBuildersList().add(new FileWriteBuilder("artifact.txt", "blahblahblah"));
-            p.getPublishersList().add(new ThorwAbortExceptionPublisher());
+            p.getPublishersList().add(new ThrowAbortExceptionPublisher());
             p.getPublishersList().add(new ArtifactArchiver("**/*", "", false));
             
             FreeStyleBuild b = p.scheduleBuild2(0).get();
@@ -347,7 +347,7 @@ public class FlexiblePublisherTest extends HudsonTestCase {
                     new ConditionalPublisher(
                             new AlwaysRun(),
                             Arrays.<BuildStep>asList(
-                                    new ThorwAbortExceptionPublisher()
+                                    new ThrowAbortExceptionPublisher()
                             ),
                             new BuildStepRunner.Fail(),
                             false,
@@ -446,7 +446,7 @@ public class FlexiblePublisherTest extends HudsonTestCase {
                     new ConditionalPublisher(
                             new AlwaysRun(),
                             Arrays.<BuildStep>asList(
-                                    new ThorwAbortExceptionPublisher(),
+                                    new ThrowAbortExceptionPublisher(),
                                     new ArtifactArchiver("**/*", "", false)
                             ),
                             new BuildStepRunner.Fail(),
