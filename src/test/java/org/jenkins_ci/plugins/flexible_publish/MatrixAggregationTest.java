@@ -40,6 +40,7 @@ import hudson.matrix.MatrixProject;
 import hudson.matrix.TextAxis;
 import hudson.model.BuildListener;
 import hudson.model.FreeStyleBuild;
+import hudson.model.Result;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Cause;
@@ -637,6 +638,21 @@ public class MatrixAggregationTest extends HudsonTestCase {
             assertNotNull(b.getAction(AggregationRecorder.AggregatorAction.class));
         }
         
+        // matrix-project changes the build result to failure when an aggregator throws Exception.
+        {
+            MatrixProject p = createMatrixProject();
+            p.setAxes(new AxisList(new TextAxis("axis1", "value1")));
+            
+            p.getPublishersList().add(new ThrowGeneralExceptionRecorder());
+            p.getPublishersList().add(new AggregationRecorder());
+            
+            MatrixBuild b = p.scheduleBuild2(0).get();
+            assertBuildStatus(Result.FAILURE, b);
+            
+            // matrix-project 1.4 doesn't run following aggregations.
+            // assertNotNull(b.getAction(AggregationRecorder.AggregatorAction.class));
+        }
+        
         //// Flexible Publish should run as matrix-projects do.
         
         // flexible-publish executes all aggregators even one of them failed.
@@ -705,9 +721,7 @@ public class MatrixAggregationTest extends HudsonTestCase {
             )));
             
             MatrixBuild b = p.scheduleBuild2(0).get();
-            assertBuildStatusSuccess(b);
-                // results of aggregation deosn't affect build result.
-                // usually aggregators update results by themselves.
+            assertBuildStatus(Result.FAILURE, b);
             
             // AggregationRecorder is executed even a prior aggregator fails.
             assertNotNull(b.getAction(AggregationRecorder.AggregatorAction.class));
@@ -773,9 +787,7 @@ public class MatrixAggregationTest extends HudsonTestCase {
             )));
             
             MatrixBuild b = p.scheduleBuild2(0).get();
-            assertBuildStatusSuccess(b);
-                // results of aggregation deosn't affect build result.
-                // usually aggregators update results by themselves.
+            assertBuildStatus(Result.FAILURE, b);
             
             // AggregationRecorder is executed even a prior aggregator fails.
             assertNotNull(b.getAction(AggregationRecorder.AggregatorAction.class));

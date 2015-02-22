@@ -32,6 +32,7 @@ import hudson.matrix.MatrixAggregator;
 import hudson.matrix.MatrixBuild;
 import hudson.matrix.MatrixRun;
 import hudson.model.BuildListener;
+import hudson.model.Result;
 
 /**
  * {@link MatrixAggregator} for {@link FlexiblePublisher}.
@@ -105,6 +106,7 @@ public class FlexibleMatrixAggregator extends MatrixAggregator {
                 }
             } catch (Exception e) {
                 e.printStackTrace(listener.error(String.format("[flexible-publish] aggregation with %s is aborted due to exception", cma.toString())));
+                build.setResult(Result.FAILURE);
                 wholeResult = false;
             }
         }
