@@ -170,40 +170,43 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
     }
 
     public boolean prebuild(final AbstractBuild<?, ?> build, final BuildListener listener) {
-        for (BuildStep publisher: getPublisherList()) {
-            if (!runner.prebuild(condition, publisher, build, listener)) {
-                return false;
-            }
+        if (getPublisherList().size() <= 0) {
+            return true;
+        } else if (getPublisherList().size() > 1) {
+            return runner.prebuild(condition, new RunAllBuilder(getPublisherList()), build, listener);
         }
-        return true;
-    }
-
-    private static String getBuildStepName(BuildStep s) {
-        if (s instanceof Describable) {
-            return String.format("%s (%s)", ((Describable<?>)s).getDescriptor().getDisplayName(), s.toString());
-        } else {
-            return s.toString();
-        }
+        return runner.prebuild(condition, getPublisherList().get(0), build, listener);
     }
 
     public boolean perform(final AbstractBuild<?, ?> build, final Launcher launcher, final BuildListener listener)
                                                                                                 throws InterruptedException, IOException {
-        // do as AbstractBuild.AbstractRunner#performAllBuildSteps
-        boolean wholeResult = true;
-        for (BuildStep publisher: getPublisherList()) {
-            try {
-                if (!runner.perform(condition, publisher, build, launcher, listener)) {
-                    listener.error(String.format("[flexible-publish] %s failed", getBuildStepName(publisher)));
-                    build.setResult(Result.FAILURE);
-                    wholeResult = false;
-                }
-            } catch (Exception e) {
-                e.printStackTrace(listener.error(String.format("[flexible-publish] %s aborted due to exception", getBuildStepName(publisher))));
-                build.setResult(Result.FAILURE);
-                wholeResult = false;
-            }
+        if (getPublisherList().size() <= 0) {
+            return true;
+        } else if (getPublisherList().size() > 1) {
+            return runner.perform(condition, new RunAllBuilder(getPublisherList()), build, launcher, listener);
         }
-        return wholeResult;
+        
+        // the special case for only one publisher.
+        // this allows workarounds when RunAllBuilder causes problems.
+        BuildStep buildstep = getPublisherList().get(0);
+        try {
+            if (!runner.perform(condition, getPublisherList().get(0), build, launcher, listener)) {
+                listener.error(String.format(
+                        "[flexible-publish] %s failed",
+                        FlexiblePublisher.getBuildStepName(buildstep)
+                ));
+                build.setResult(Result.FAILURE);
+                return false;
+            }
+        } catch (Exception e) {
+            e.printStackTrace(listener.error(String.format(
+                    "[flexible-publish] %s aborted due to exception",
+                    FlexiblePublisher.getBuildStepName(buildstep)
+            )));
+            build.setResult(Result.FAILURE);
+            return false;
+        }
+        return true;
     }
 
     public Object readResolve() {

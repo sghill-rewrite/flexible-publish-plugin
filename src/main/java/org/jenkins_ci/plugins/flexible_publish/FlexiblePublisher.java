@@ -318,4 +318,12 @@ public class FlexiblePublisher extends Recorder implements DependecyDeclarer, Ma
                 build, launcher, listener, aggregatorList
         );
     }
+    
+    protected static String getBuildStepName(BuildStep s) {
+        if (s instanceof Describable) {
+            return String.format("%s (%s)", ((Describable<?>)s).getDescriptor().getDisplayName(), s.toString());
+        } else {
+            return s.toString();
+        }
+    }
 }
