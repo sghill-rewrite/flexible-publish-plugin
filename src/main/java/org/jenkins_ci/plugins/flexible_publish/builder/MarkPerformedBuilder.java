@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  */
 
-package org.jenkins_ci.plugins.flexible_publish;
+package org.jenkins_ci.plugins.flexible_publish.builder;
 
 import java.io.IOException;
 
@@ -39,7 +39,7 @@ import hudson.tasks.Builder;
  * 
  * Stores whether perform is executed.
  */
-class MarkPerformedBuilder extends Builder {
+public class MarkPerformedBuilder extends Builder {
     private boolean performed = false;
     
     public boolean isPerformed() {

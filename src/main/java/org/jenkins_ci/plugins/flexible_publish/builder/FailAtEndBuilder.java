@@ -22,13 +22,14 @@
  * THE SOFTWARE.
  */
 
-package org.jenkins_ci.plugins.flexible_publish;
+package org.jenkins_ci.plugins.flexible_publish.builder;
 
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
+import org.jenkins_ci.plugins.flexible_publish.FlexiblePublisher;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
@@ -50,10 +51,10 @@ import hudson.tasks.Builder;
  * 
  * Run all build steps.
  */
-/*package*/ class RunAllBuilder extends Builder {
+public class FailAtEndBuilder extends Builder {
     private final List<BuildStep> buildsteps;
     
-    public RunAllBuilder(List<BuildStep> buildsteps) {
+    public FailAtEndBuilder(List<BuildStep> buildsteps) {
         this.buildsteps = buildsteps;
     }
     /**
@@ -99,7 +100,7 @@ import hudson.tasks.Builder;
                 if (!buildstep.perform(build, launcher, listener)) {
                     listener.error(String.format(
                             "[flexible-publish] %s failed",
-                            FlexiblePublisher.getBuildStepName(buildstep)
+                            FlexiblePublisher.getBuildStepDetailedName(buildstep)
                     ));
                     build.setResult(Result.FAILURE);
                     wholeResult = false;
@@ -107,7 +108,7 @@ import hudson.tasks.Builder;
             } catch (Exception e) {
                 e.printStackTrace(listener.error(String.format(
                         "[flexible-publish] %s aborted due to exception",
-                        FlexiblePublisher.getBuildStepName(buildstep)
+                        FlexiblePublisher.getBuildStepDetailedName(buildstep)
                 )));
                 build.setResult(Result.FAILURE);
                 wholeResult = false;

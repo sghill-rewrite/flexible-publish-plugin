@@ -49,6 +49,7 @@ import hudson.tasks.Publisher;
 import hudson.tasks.Recorder;
 import hudson.tasks.ArtifactArchiver;
 
+import org.jenkins_ci.plugins.flexible_publish.strategy.FailFastExecutionStrategy;
 import org.jenkins_ci.plugins.flexible_publish.testutils.FileWriteBuilder;
 import org.jenkins_ci.plugins.run_condition.BuildStepRunner;
 import org.jenkins_ci.plugins.run_condition.core.AlwaysRun;
@@ -96,6 +97,17 @@ public class FlexiblePublisherTest extends HudsonTestCase {
             assertBuildStatusSuccess(b);
             assertTrue(new File(b.getArtifactsDir(), "artifact.txt").exists());
         }
+    }
+    
+    @LocalData
+    public void testMigrationFrom0_14_1() throws Exception {
+        FreeStyleProject p = jenkins.getItemByFullName("migration_from_0.14.1", FreeStyleProject.class);
+        FlexiblePublisher fp = p.getPublishersList().get(FlexiblePublisher.class);
+        ConditionalPublisher cp = fp.getPublishers().get(0);
+        assertEquals(
+                FailFastExecutionStrategy.class,
+                cp.getExecutionStrategy().getClass()
+        );
     }
     
     public void testMultipleConditionsMultipleActions() throws Exception {

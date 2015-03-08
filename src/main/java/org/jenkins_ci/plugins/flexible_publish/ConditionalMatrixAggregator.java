@@ -25,6 +25,10 @@
 package org.jenkins_ci.plugins.flexible_publish;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+
+import org.jenkins_ci.plugins.flexible_publish.strategy.ConditionalExecutionStrategy;
 
 import hudson.Launcher;
 import hudson.matrix.MatrixAggregator;
@@ -39,42 +43,47 @@ import hudson.tasks.Publisher;
  */
 public class ConditionalMatrixAggregator extends MatrixAggregator {
     private ConditionalPublisher conditionalPublisher;
-    private MatrixAggregator baseAggregator;
+    private List<MatrixAggregator> baseAggregatorList;
     
+    @Deprecated
     protected ConditionalMatrixAggregator(MatrixBuild build, Launcher launcher,
             BuildListener listener, ConditionalPublisher conditionalPublisher,
             MatrixAggregator baseAggregator) {
+        this(build, launcher, listener, conditionalPublisher, Arrays.asList(baseAggregator));
+    }
+    
+    protected ConditionalMatrixAggregator(MatrixBuild build, Launcher launcher,
+            BuildListener listener, ConditionalPublisher conditionalPublisher,
+            List<MatrixAggregator> baseAggregatorList) {
         super(build, launcher, listener);
         this.conditionalPublisher = conditionalPublisher;
-        this.baseAggregator = baseAggregator;
+        this.baseAggregatorList = baseAggregatorList;
+    }
+    
+    private ConditionalExecutionStrategy.AggregatorContext createAggregatorContext() {
+        return new ConditionalExecutionStrategy.AggregatorContext(
+                build,
+                launcher,
+                listener,
+                conditionalPublisher.getRunner(),
+                conditionalPublisher.getCondition(),
+                baseAggregatorList
+        );
     }
     
     @Override
     public boolean startBuild() throws InterruptedException, IOException {
-        return baseAggregator.startBuild();
+        return conditionalPublisher.getExecutionStrategy().matrixAggregationStartBuild(createAggregatorContext());
     }
     
     @Override
     public boolean endRun(MatrixRun run)
             throws InterruptedException, IOException {
-        MarkPerformedBuilder mpb = new MarkPerformedBuilder();
-        boolean isSuccess = conditionalPublisher.getRunner().perform(
-                conditionalPublisher.getCondition(),
-                mpb,
-                run, // watch out! not parent build.
-                launcher,
-                listener
-        );
-        
-        if(!isSuccess || !mpb.isPerformed()) {
-            return true;
-        }
-        
-        return baseAggregator.endRun(run);
+        return conditionalPublisher.getExecutionStrategy().matrixAggregationEndRun(createAggregatorContext(), run);
     }
     
     @Override
     public boolean endBuild() throws InterruptedException, IOException {
-        return baseAggregator.endBuild();
+        return conditionalPublisher.getExecutionStrategy().matrixAggregationEndBuild(createAggregatorContext());
     }
 }
