@@ -32,7 +32,6 @@ import jenkins.model.Jenkins;
 import org.jenkins_ci.plugins.flexible_publish.ConditionalPublisher;
 import org.jenkins_ci.plugins.run_condition.RunCondition;
 import org.jenkins_ci.plugins.run_condition.BuildStepRunner;
-import org.jenkins_ci.plugins.run_condition.BuildStepRunner.BuildStepRunnerDescriptor;
 
 import hudson.DescriptorExtensionList;
 import hudson.ExtensionPoint;
@@ -44,7 +43,6 @@ import hudson.model.AbstractDescribableImpl;
 import hudson.model.BuildListener;
 import hudson.model.AbstractBuild;
 import hudson.model.Descriptor;
-import hudson.model.Hudson;
 import hudson.tasks.BuildStep;
 
 /**
@@ -55,7 +53,7 @@ public abstract class ConditionalExecutionStrategy
         implements ExtensionPoint
 {
     /**
-     * Carries parameters from {@link ConditionalPublisher}
+     * Carries parameters from {@link ConditionalPublisher} to run publishers.
      * This allows us keep compatibility when introducing new parameters.
      */
     public static class PublisherContext {
@@ -82,6 +80,10 @@ public abstract class ConditionalExecutionStrategy
         }
     }
     
+    /**
+     * Carries parameters from {@link ConditionalPublisher} to run aggregators.
+     * This allows us keep compatibility when introducing new parameters.
+     */
     public static class AggregatorContext {
         private final MatrixBuild build;
         private final Launcher launcher;
@@ -126,14 +128,58 @@ public abstract class ConditionalExecutionStrategy
         }
     }
     
+    /**
+     * Run {@link BuildStep#prebuild(AbstractBuild, BuildListener)} for all publishers.
+     * 
+     * @param context
+     * @param build
+     * @param listener
+     * @return false to abort the build.
+     */
     public abstract boolean prebuild(PublisherContext context, AbstractBuild<?,?> build, BuildListener listener);
     
+    /**
+     * Run {@link BuildStep#perform(AbstractBuild, Launcher, BuildListener)} for all publishes.
+     * 
+     * @param context
+     * @param build
+     * @param launcher
+     * @param listener
+     * @return false to indicate a failure. That doesn't abort the build.
+     * @throws InterruptedException
+     * @throws IOException
+     */
     public abstract boolean perform(PublisherContext context, AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException;
     
+    /**
+     * Run {@link MatrixAggregator#startBuild()} for all publishes.
+     * 
+     * @param aggregatorContext
+     * @return
+     * @throws InterruptedException
+     * @throws IOException
+     */
     public abstract boolean matrixAggregationStartBuild(AggregatorContext aggregatorContext) throws InterruptedException, IOException;
     
+    /**
+     * Run {@link MatrixAggregator#endRun(MatrixRun)} for all publishes.
+     * 
+     * @param aggregatorContext
+     * @param run
+     * @return
+     * @throws InterruptedException
+     * @throws IOException
+     */
     public abstract boolean matrixAggregationEndRun(AggregatorContext aggregatorContext, MatrixRun run) throws InterruptedException, IOException;
     
+    /**
+     * Run {@link MatrixAggregator#endBuild()} for all publishes.
+     * 
+     * @param aggregatorContext
+     * @return
+     * @throws InterruptedException
+     * @throws IOException
+     */
     public abstract boolean matrixAggregationEndBuild(AggregatorContext aggregatorContext) throws InterruptedException, IOException;
     
     public static DescriptorExtensionList<ConditionalExecutionStrategy, Descriptor<ConditionalExecutionStrategy>> all() {

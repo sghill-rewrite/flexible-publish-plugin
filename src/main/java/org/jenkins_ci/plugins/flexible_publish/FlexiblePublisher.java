@@ -115,9 +115,24 @@ public class FlexiblePublisher extends Recorder implements DependecyDeclarer, Ma
     public boolean perform(final AbstractBuild<?, ?> build, final Launcher launcher, final BuildListener listener)
                                                                                                 throws InterruptedException, IOException {
         boolean wholeResult = true;
-        for (ConditionalPublisher publisher : publishers)
-            if (!publisher.perform(build, launcher, listener))
+        for (ConditionalPublisher publisher : publishers) {
+            try {
+                if (!publisher.perform(build, launcher, listener))
+                {
+                    // error logs should be printed in ConditionalPublisher (or ConditionalExecutionStrategy)
+                    wholeResult = false;
+                }
+            } catch(Exception e) {
+                // This code doesn't run
+                // as Exceptions should be handled in ConditionalPublisher (or ConditionalExecutionStrategy)
+                e.printStackTrace(listener.error(String.format(
+                        "[flexible-publish] %s aborted due to exception",
+                        FlexiblePublisher.getBuildStepShortName(publisher.getPublisherList())
+                )));
+                build.setResult(Result.FAILURE);
                 wholeResult = false;
+            }
+        }
         return wholeResult;
     }
 

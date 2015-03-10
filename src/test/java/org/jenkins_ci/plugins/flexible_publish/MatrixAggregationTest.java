@@ -56,6 +56,8 @@ import hudson.tasks.Publisher;
 import hudson.tasks.Recorder;
 import hudson.tasks.ArtifactArchiver;
 
+import org.jenkins_ci.plugins.flexible_publish.strategy.FailAtEndExecutionStrategy;
+import org.jenkins_ci.plugins.flexible_publish.strategy.FailFastExecutionStrategy;
 import org.jenkins_ci.plugins.flexible_publish.testutils.AggregationRecorder;
 import org.jenkins_ci.plugins.flexible_publish.testutils.FileWriteBuilder;
 import org.jenkins_ci.plugins.run_condition.BuildStepRunner;
@@ -620,8 +622,10 @@ public class MatrixAggregationTest extends HudsonTestCase {
             }
         }
     }
-    public void testRunAllAggregators() throws Exception {
-        // matrix-project executes all aggregators even one of them failed.
+    
+    public void testRunAggregatorsWithFailAtEnd() throws Exception {
+        // matrix-project executes all aggregators (endBuild) even one of them failed.
+        // This demonstrates an aggregation of a matrix project works as "Fail at end".
         {
             MatrixProject p = createMatrixProject();
             p.setAxes(new AxisList(new TextAxis("axis1", "value1")));
@@ -653,7 +657,7 @@ public class MatrixAggregationTest extends HudsonTestCase {
             // assertNotNull(b.getAction(AggregationRecorder.AggregatorAction.class));
         }
         
-        //// Flexible Publish should run as matrix-projects do.
+        //// Flexible Publish runs as matrix-projects do.
         
         // flexible-publish executes all aggregators even one of them failed.
         {
@@ -669,7 +673,8 @@ public class MatrixAggregationTest extends HudsonTestCase {
                             new BuildStepRunner.Fail(),
                             false,
                             null,
-                            null
+                            null,
+                            new FailAtEndExecutionStrategy()
                     ),
                     new ConditionalPublisher(
                             new AlwaysRun(),
@@ -679,7 +684,8 @@ public class MatrixAggregationTest extends HudsonTestCase {
                             new BuildStepRunner.Fail(),
                             false,
                             null,
-                            null
+                            null,
+                            new FailAtEndExecutionStrategy()
                     )
             )));
             
@@ -706,7 +712,8 @@ public class MatrixAggregationTest extends HudsonTestCase {
                             new BuildStepRunner.Fail(),
                             false,
                             null,
-                            null
+                            null,
+                            new FailAtEndExecutionStrategy()
                     ),
                     new ConditionalPublisher(
                             new AlwaysRun(),
@@ -716,7 +723,8 @@ public class MatrixAggregationTest extends HudsonTestCase {
                             new BuildStepRunner.Fail(),
                             false,
                             null,
-                            null
+                            null,
+                            new FailAtEndExecutionStrategy()
                     )
             )));
             
@@ -728,9 +736,9 @@ public class MatrixAggregationTest extends HudsonTestCase {
         }
         
         
-        //// Of course, ConditionalPublisher should do so.
+        //// FailAtEndExecutionStrategy works as so also for publishers in a condition.
         
-        // flexible-publish executes all aggregators even one of them failed.
+        // FailAtEndExecutionStrategy executes all aggregators even one of them failed.
         {
             MatrixProject p = createMatrixProject();
             p.setAxes(new AxisList(new TextAxis("axis1", "value1")));
@@ -745,7 +753,86 @@ public class MatrixAggregationTest extends HudsonTestCase {
                             new BuildStepRunner.Fail(),
                             false,
                             null,
-                            null
+                            null,
+                            new FailAtEndExecutionStrategy()
+                    )
+            )));
+            
+            MatrixBuild b = p.scheduleBuild2(0).get();
+            assertBuildStatusSuccess(b);
+                // results of aggregation deosn't affect build result.
+                // usually aggregators update results by themselves.
+            
+            // AggregationRecorder is executed even a prior aggregator fails.
+            assertNotNull(b.getAction(AggregationRecorder.AggregatorAction.class));
+        }
+        
+        // FailAtEndExecutionStrategy executes all aggregators even one of them throws Exception.
+        {
+            MatrixProject p = createMatrixProject();
+            p.setAxes(new AxisList(new TextAxis("axis1", "value1")));
+            
+            p.getPublishersList().add(new FlexiblePublisher(Arrays.asList(
+                    new ConditionalPublisher(
+                            new AlwaysRun(),
+                            Arrays.<BuildStep>asList(
+                                    new ThrowGeneralExceptionRecorder(),
+                                    new AggregationRecorder()
+                            ),
+                            new BuildStepRunner.Fail(),
+                            false,
+                            null,
+                            null,
+                            new FailAtEndExecutionStrategy()
+                    ),
+                    new ConditionalPublisher(
+                            new AlwaysRun(),
+                            Arrays.<BuildStep>asList(
+                            ),
+                            new BuildStepRunner.Fail(),
+                            false,
+                            null,
+                            null,
+                            new FailAtEndExecutionStrategy()
+                    )
+            )));
+            
+            MatrixBuild b = p.scheduleBuild2(0).get();
+            assertBuildStatus(Result.FAILURE, b);
+            
+            // AggregationRecorder is executed even a prior aggregator fails.
+            assertNotNull(b.getAction(AggregationRecorder.AggregatorAction.class));
+        }
+    }
+    
+    public void testRunAggregatorsWithFailFast() throws Exception {
+        // flexible-publish executes all aggregators even one of them failed.
+        {
+            MatrixProject p = createMatrixProject();
+            p.setAxes(new AxisList(new TextAxis("axis1", "value1")));
+            
+            p.getPublishersList().add(new FlexiblePublisher(Arrays.asList(
+                    new ConditionalPublisher(
+                            new AlwaysRun(),
+                            Arrays.<BuildStep>asList(
+                                    new FailureAggregationRecorder()
+                            ),
+                            new BuildStepRunner.Fail(),
+                            false,
+                            null,
+                            null,
+                            new FailFastExecutionStrategy()
+                    ),
+                    new ConditionalPublisher(
+                            new AlwaysRun(),
+                            Arrays.<BuildStep>asList(
+                                    new AggregationRecorder()
+                            ),
+                            new BuildStepRunner.Fail(),
+                            false,
+                            null,
+                            null,
+                            new FailFastExecutionStrategy()
                     )
             )));
             
@@ -767,22 +854,24 @@ public class MatrixAggregationTest extends HudsonTestCase {
                     new ConditionalPublisher(
                             new AlwaysRun(),
                             Arrays.<BuildStep>asList(
-                                    new ThrowGeneralExceptionRecorder(),
+                                    new ThrowGeneralExceptionRecorder()
+                            ),
+                            new BuildStepRunner.Fail(),
+                            false,
+                            null,
+                            null,
+                            new FailFastExecutionStrategy()
+                    ),
+                    new ConditionalPublisher(
+                            new AlwaysRun(),
+                            Arrays.<BuildStep>asList(
                                     new AggregationRecorder()
                             ),
                             new BuildStepRunner.Fail(),
                             false,
                             null,
-                            null
-                    ),
-                    new ConditionalPublisher(
-                            new AlwaysRun(),
-                            Arrays.<BuildStep>asList(
-                            ),
-                            new BuildStepRunner.Fail(),
-                            false,
                             null,
-                            null
+                            new FailFastExecutionStrategy()
                     )
             )));
             
@@ -791,6 +880,75 @@ public class MatrixAggregationTest extends HudsonTestCase {
             
             // AggregationRecorder is executed even a prior aggregator fails.
             assertNotNull(b.getAction(AggregationRecorder.AggregatorAction.class));
+        }
+        
+        
+        //// ConditionalPublisher doesn't work so with FailFastExecutionStrategy.
+        
+        // FailFastExecutionStrategy stops executing aggregators when one of them failed.
+        {
+            MatrixProject p = createMatrixProject();
+            p.setAxes(new AxisList(new TextAxis("axis1", "value1")));
+            
+            p.getPublishersList().add(new FlexiblePublisher(Arrays.asList(
+                    new ConditionalPublisher(
+                            new AlwaysRun(),
+                            Arrays.<BuildStep>asList(
+                                    new FailureAggregationRecorder(),
+                                    new AggregationRecorder()
+                            ),
+                            new BuildStepRunner.Fail(),
+                            false,
+                            null,
+                            null,
+                            new FailFastExecutionStrategy()
+                    )
+            )));
+            
+            MatrixBuild b = p.scheduleBuild2(0).get();
+            assertBuildStatusSuccess(b);
+                // results of aggregation deosn't affect build result.
+                // usually aggregators update results by themselves.
+            
+            // AggregationRecorder isn't executed as a prior aggregator fails.
+            assertNull(b.getAction(AggregationRecorder.AggregatorAction.class));
+        }
+        
+        // FailFastExecutionStrategy stops executing aggregators when one of them throws Exception.
+        {
+            MatrixProject p = createMatrixProject();
+            p.setAxes(new AxisList(new TextAxis("axis1", "value1")));
+            
+            p.getPublishersList().add(new FlexiblePublisher(Arrays.asList(
+                    new ConditionalPublisher(
+                            new AlwaysRun(),
+                            Arrays.<BuildStep>asList(
+                                    new ThrowGeneralExceptionRecorder(),
+                                    new AggregationRecorder()
+                            ),
+                            new BuildStepRunner.Fail(),
+                            false,
+                            null,
+                            null,
+                            new FailFastExecutionStrategy()
+                    ),
+                    new ConditionalPublisher(
+                            new AlwaysRun(),
+                            Arrays.<BuildStep>asList(
+                            ),
+                            new BuildStepRunner.Fail(),
+                            false,
+                            null,
+                            null,
+                            new FailFastExecutionStrategy()
+                    )
+            )));
+            
+            MatrixBuild b = p.scheduleBuild2(0).get();
+            assertBuildStatus(Result.FAILURE, b);
+            
+            // AggregationRecorder isn't executed as a prior aggregator fails.
+            assertNull(b.getAction(AggregationRecorder.AggregatorAction.class));
         }
     }
 }

@@ -49,6 +49,7 @@ import hudson.tasks.Publisher;
 import hudson.tasks.Recorder;
 import hudson.tasks.ArtifactArchiver;
 
+import org.jenkins_ci.plugins.flexible_publish.strategy.FailAtEndExecutionStrategy;
 import org.jenkins_ci.plugins.flexible_publish.strategy.FailFastExecutionStrategy;
 import org.jenkins_ci.plugins.flexible_publish.testutils.FileWriteBuilder;
 import org.jenkins_ci.plugins.run_condition.BuildStepRunner;
@@ -264,8 +265,9 @@ public class FlexiblePublisherTest extends HudsonTestCase {
         }
     }
     
-    public void testRunAllPublishers() throws Exception {
+    public void testRunPublishersWithFailAtEnd() throws Exception {
         // Jenkins executes all publishers even one of them failed.
+        // This demonstrates a free style project works as "Fail at end".
         {
             FreeStyleProject p = createFreeStyleProject();
             
@@ -313,7 +315,7 @@ public class FlexiblePublisherTest extends HudsonTestCase {
             assertTrue(new File(b.getArtifactsDir(), "artifact.txt").exists());
         }
         
-        //// Flexible Publish should run as Jenkins core do.
+        //// Flexible Publish runs as Jenkins core do.
         
         // Flexible Publish executes all publishers even one of them failed.
         {
@@ -329,7 +331,8 @@ public class FlexiblePublisherTest extends HudsonTestCase {
                             new BuildStepRunner.Fail(),
                             false,
                             null,
-                            null
+                            null,
+                            new FailAtEndExecutionStrategy()
                     ),
                     new ConditionalPublisher(
                             new AlwaysRun(),
@@ -339,7 +342,8 @@ public class FlexiblePublisherTest extends HudsonTestCase {
                             new BuildStepRunner.Fail(),
                             false,
                             null,
-                            null
+                            null,
+                            new FailAtEndExecutionStrategy()
                     )
             )));
             
@@ -364,7 +368,8 @@ public class FlexiblePublisherTest extends HudsonTestCase {
                             new BuildStepRunner.Fail(),
                             false,
                             null,
-                            null
+                            null,
+                            new FailAtEndExecutionStrategy()
                     ),
                     new ConditionalPublisher(
                             new AlwaysRun(),
@@ -374,7 +379,8 @@ public class FlexiblePublisherTest extends HudsonTestCase {
                             new BuildStepRunner.Fail(),
                             false,
                             null,
-                            null
+                            null,
+                            new FailAtEndExecutionStrategy()
                     )
             )));
             
@@ -399,7 +405,8 @@ public class FlexiblePublisherTest extends HudsonTestCase {
                             new BuildStepRunner.Fail(),
                             false,
                             null,
-                            null
+                            null,
+                            new FailAtEndExecutionStrategy()
                     ),
                     new ConditionalPublisher(
                             new AlwaysRun(),
@@ -409,7 +416,8 @@ public class FlexiblePublisherTest extends HudsonTestCase {
                             new BuildStepRunner.Fail(),
                             false,
                             null,
-                            null
+                            null,
+                            new FailAtEndExecutionStrategy()
                     )
             )));
             
@@ -421,9 +429,9 @@ public class FlexiblePublisherTest extends HudsonTestCase {
         }
         
         
-        //// Of course, ConditionalPublisher should do so.
+        //// FailAtEndExecutionStrategy works as so also for publishers in a condition.
         
-        // Flexible Publish executes all publishers in a condition even one of them failed.
+        // FailAtEndExecutionStrategy executes all publishers in a condition even one of them failed.
         {
             FreeStyleProject p = createFreeStyleProject();
             
@@ -438,7 +446,102 @@ public class FlexiblePublisherTest extends HudsonTestCase {
                             new BuildStepRunner.Fail(),
                             false,
                             null,
-                            null
+                            null,
+                            new FailAtEndExecutionStrategy()
+                    )
+            )));
+            
+            FreeStyleBuild b = p.scheduleBuild2(0).get();
+            assertBuildStatus(Result.FAILURE, b);
+            
+            // ArtifactArchiver is executed even prior publisher fails.
+            assertTrue(new File(b.getArtifactsDir(), "artifact.txt").exists());
+        }
+        
+        // FailAtEndExecutionStrategy executes all publishers even one of them throws AbortException.
+        {
+            FreeStyleProject p = createFreeStyleProject();
+            
+            p.getBuildersList().add(new FileWriteBuilder("artifact.txt", "blahblahblah"));
+            p.getPublishersList().add(new FlexiblePublisher(Arrays.asList(
+                    new ConditionalPublisher(
+                            new AlwaysRun(),
+                            Arrays.<BuildStep>asList(
+                                    new ThrowAbortExceptionPublisher(),
+                                    new ArtifactArchiver("**/*", "", false)
+                            ),
+                            new BuildStepRunner.Fail(),
+                            false,
+                            null,
+                            null,
+                            new FailAtEndExecutionStrategy()
+                    )
+            )));
+            
+            FreeStyleBuild b = p.scheduleBuild2(0).get();
+            assertBuildStatus(Result.FAILURE, b);
+            
+            // ArtifactArchiver is executed even prior publisher fails.
+            assertTrue(new File(b.getArtifactsDir(), "artifact.txt").exists());
+        }
+        
+        // FailAtEndExecutionStrategy executes all publishers even one of them throws any Exceptions.
+        {
+            FreeStyleProject p = createFreeStyleProject();
+            
+            p.getBuildersList().add(new FileWriteBuilder("artifact.txt", "blahblahblah"));
+            p.getPublishersList().add(new FlexiblePublisher(Arrays.asList(
+                    new ConditionalPublisher(
+                            new AlwaysRun(),
+                            Arrays.<BuildStep>asList(
+                                    new ThorwGeneralExceptionPublisher(),
+                                    new ArtifactArchiver("**/*", "", false)
+                            ),
+                            new BuildStepRunner.Fail(),
+                            false,
+                            null,
+                            null,
+                            new FailAtEndExecutionStrategy()
+                    )
+            )));
+            
+            FreeStyleBuild b = p.scheduleBuild2(0).get();
+            assertBuildStatus(Result.FAILURE, b);
+            
+            // ArtifactArchiver is executed even prior publisher fails.
+            assertTrue(new File(b.getArtifactsDir(), "artifact.txt").exists());
+        }
+    }
+    
+    
+    public void testRunPublishersWithFailFast() throws Exception {
+        // Flexible Publish executes all publishers even one of them failed.
+        {
+            FreeStyleProject p = createFreeStyleProject();
+            
+            p.getBuildersList().add(new FileWriteBuilder("artifact.txt", "blahblahblah"));
+            p.getPublishersList().add(new FlexiblePublisher(Arrays.asList(
+                    new ConditionalPublisher(
+                            new AlwaysRun(),
+                            Arrays.<BuildStep>asList(
+                                    new FailurePublisher()
+                            ),
+                            new BuildStepRunner.Fail(),
+                            false,
+                            null,
+                            null,
+                            new FailFastExecutionStrategy()
+                    ),
+                    new ConditionalPublisher(
+                            new AlwaysRun(),
+                            Arrays.<BuildStep>asList(
+                                    new ArtifactArchiver("**/*", "", false)
+                            ),
+                            new BuildStepRunner.Fail(),
+                            false,
+                            null,
+                            null,
+                            new FailFastExecutionStrategy()
                     )
             )));
             
@@ -458,13 +561,24 @@ public class FlexiblePublisherTest extends HudsonTestCase {
                     new ConditionalPublisher(
                             new AlwaysRun(),
                             Arrays.<BuildStep>asList(
-                                    new ThrowAbortExceptionPublisher(),
+                                    new ThrowAbortExceptionPublisher()
+                            ),
+                            new BuildStepRunner.Fail(),
+                            false,
+                            null,
+                            null,
+                            new FailFastExecutionStrategy()
+                    ),
+                    new ConditionalPublisher(
+                            new AlwaysRun(),
+                            Arrays.<BuildStep>asList(
                                     new ArtifactArchiver("**/*", "", false)
                             ),
                             new BuildStepRunner.Fail(),
                             false,
                             null,
-                            null
+                            null,
+                            new FailFastExecutionStrategy()
                     )
             )));
             
@@ -484,13 +598,24 @@ public class FlexiblePublisherTest extends HudsonTestCase {
                     new ConditionalPublisher(
                             new AlwaysRun(),
                             Arrays.<BuildStep>asList(
-                                    new ThorwGeneralExceptionPublisher(),
+                                    new ThorwGeneralExceptionPublisher()
+                            ),
+                            new BuildStepRunner.Fail(),
+                            false,
+                            null,
+                            null,
+                            new FailFastExecutionStrategy()
+                    ),
+                    new ConditionalPublisher(
+                            new AlwaysRun(),
+                            Arrays.<BuildStep>asList(
                                     new ArtifactArchiver("**/*", "", false)
                             ),
                             new BuildStepRunner.Fail(),
                             false,
                             null,
-                            null
+                            null,
+                            new FailFastExecutionStrategy()
                     )
             )));
             
@@ -499,6 +624,90 @@ public class FlexiblePublisherTest extends HudsonTestCase {
             
             // ArtifactArchiver is executed even prior publisher fails.
             assertTrue(new File(b.getArtifactsDir(), "artifact.txt").exists());
+        }
+        
+        
+        //// ConditionalPublisher doesn't do so with FailFastExecutionStrategy.
+        
+        // FailFastExecutionStrategy stops executing publishers in a condition when one of them failed.
+        {
+            FreeStyleProject p = createFreeStyleProject();
+            
+            p.getBuildersList().add(new FileWriteBuilder("artifact.txt", "blahblahblah"));
+            p.getPublishersList().add(new FlexiblePublisher(Arrays.asList(
+                    new ConditionalPublisher(
+                            new AlwaysRun(),
+                            Arrays.<BuildStep>asList(
+                                    new FailurePublisher(),
+                                    new ArtifactArchiver("**/*", "", false)
+                            ),
+                            new BuildStepRunner.Fail(),
+                            false,
+                            null,
+                            null,
+                            new FailFastExecutionStrategy()
+                    )
+            )));
+            
+            FreeStyleBuild b = p.scheduleBuild2(0).get();
+            assertBuildStatus(Result.FAILURE, b);
+            
+            // ArtifactArchiver isn't executed as a prior publisher failed.
+            assertFalse(new File(b.getArtifactsDir(), "artifact.txt").exists());
+        }
+        
+        // FailFastExecutionStrategy stops executing publishers in a condition when one of them throws AbortException.
+        {
+            FreeStyleProject p = createFreeStyleProject();
+            
+            p.getBuildersList().add(new FileWriteBuilder("artifact.txt", "blahblahblah"));
+            p.getPublishersList().add(new FlexiblePublisher(Arrays.asList(
+                    new ConditionalPublisher(
+                            new AlwaysRun(),
+                            Arrays.<BuildStep>asList(
+                                    new ThrowAbortExceptionPublisher(),
+                                    new ArtifactArchiver("**/*", "", false)
+                            ),
+                            new BuildStepRunner.Fail(),
+                            false,
+                            null,
+                            null,
+                            new FailFastExecutionStrategy()
+                    )
+            )));
+            
+            FreeStyleBuild b = p.scheduleBuild2(0).get();
+            assertBuildStatus(Result.FAILURE, b);
+            
+            // ArtifactArchiver isn't executed as a prior publisher failed.
+            assertFalse(new File(b.getArtifactsDir(), "artifact.txt").exists());
+        }
+        
+        // FailFastExecutionStrategy stops executing publishers in a condition when one of them throws any Exceptions.
+        {
+            FreeStyleProject p = createFreeStyleProject();
+            
+            p.getBuildersList().add(new FileWriteBuilder("artifact.txt", "blahblahblah"));
+            p.getPublishersList().add(new FlexiblePublisher(Arrays.asList(
+                    new ConditionalPublisher(
+                            new AlwaysRun(),
+                            Arrays.<BuildStep>asList(
+                                    new ThorwGeneralExceptionPublisher(),
+                                    new ArtifactArchiver("**/*", "", false)
+                            ),
+                            new BuildStepRunner.Fail(),
+                            false,
+                            null,
+                            null,
+                            new FailFastExecutionStrategy()
+                    )
+            )));
+            
+            FreeStyleBuild b = p.scheduleBuild2(0).get();
+            assertBuildStatus(Result.FAILURE, b);
+            
+            // ArtifactArchiver isn't executed as a prior publisher failed.
+            assertFalse(new File(b.getArtifactsDir(), "artifact.txt").exists());
         }
     }
 }
