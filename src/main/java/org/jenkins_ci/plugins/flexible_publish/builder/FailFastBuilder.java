@@ -27,6 +27,8 @@ package org.jenkins_ci.plugins.flexible_publish.builder;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.apache.commons.lang.StringUtils;
 import org.jenkins_ci.plugins.flexible_publish.FlexiblePublisher;
@@ -34,6 +36,7 @@ import org.jenkins_ci.plugins.flexible_publish.FlexiblePublisher;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
+import hudson.AbortException;
 import hudson.Launcher;
 import hudson.model.Action;
 import hudson.model.BuildListener;
@@ -52,6 +55,7 @@ import hudson.tasks.Builder;
  * Run build steps, but stops execution immediately when any of them fail.
  */
 public class FailFastBuilder extends Builder {
+    private static final Logger LOGGER = Logger.getLogger(FailFastBuilder.class.getName());
     private final List<BuildStep> buildsteps;
     
     public FailFastBuilder(List<BuildStep> buildsteps) {
@@ -103,6 +107,15 @@ public class FailFastBuilder extends Builder {
                     build.setResult(Result.FAILURE);
                     return false;
                 }
+            } catch(AbortException e) {
+                listener.error(String.format(
+                        "[flexible-publish] %s aborted: %s",
+                        FlexiblePublisher.getBuildStepDetailedName(buildstep),
+                        e.getMessage()
+                ));
+                LOGGER.log(Level.FINE, "[flexible-publish] %s aborted", e); // for diagnostic purpose.
+                build.setResult(Result.FAILURE);
+                return false;
             } catch (Exception e) {
                 listener.error(String.format(
                         "[flexible-publish] %s failed due to exception",

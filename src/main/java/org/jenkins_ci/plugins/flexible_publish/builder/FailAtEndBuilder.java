@@ -27,6 +27,8 @@ package org.jenkins_ci.plugins.flexible_publish.builder;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.apache.commons.lang.StringUtils;
 import org.jenkins_ci.plugins.flexible_publish.FlexiblePublisher;
@@ -34,6 +36,7 @@ import org.jenkins_ci.plugins.flexible_publish.FlexiblePublisher;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
+import hudson.AbortException;
 import hudson.Launcher;
 import hudson.model.Action;
 import hudson.model.BuildListener;
@@ -52,6 +55,7 @@ import hudson.tasks.Builder;
  * Run all build steps.
  */
 public class FailAtEndBuilder extends Builder {
+    private static final Logger LOGGER = Logger.getLogger(FailAtEndBuilder.class.getName());
     private final List<BuildStep> buildsteps;
     
     public FailAtEndBuilder(List<BuildStep> buildsteps) {
@@ -105,6 +109,15 @@ public class FailAtEndBuilder extends Builder {
                     build.setResult(Result.FAILURE);
                     wholeResult = false;
                 }
+            } catch(AbortException e) {
+                listener.error(String.format(
+                        "[flexible-publish] %s aborted: %s",
+                        FlexiblePublisher.getBuildStepDetailedName(buildstep),
+                        e.getMessage()
+                ));
+                LOGGER.log(Level.FINE, "[flexible-publish] %s aborted", e); // for diagnostic purpose.
+                build.setResult(Result.FAILURE);
+                wholeResult = false;
             } catch (Exception e) {
                 e.printStackTrace(listener.error(String.format(
                         "[flexible-publish] %s aborted due to exception",

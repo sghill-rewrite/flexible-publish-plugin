@@ -24,6 +24,7 @@
 
 package org.jenkins_ci.plugins.flexible_publish;
 
+import hudson.AbortException;
 import hudson.DescriptorExtensionList;
 import hudson.Extension;
 import hudson.Launcher;
@@ -61,12 +62,15 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import jenkins.model.Jenkins;
 
 public class FlexiblePublisher extends Recorder implements DependecyDeclarer, MatrixAggregatable{
 
     public static final String PROMOTION_JOB_TYPE = "hudson.plugins.promoted_builds.PromotionProcess";
+    private static final Logger LOGGER = Logger.getLogger(FlexiblePublisher.class.getName());
 
     private List<ConditionalPublisher> publishers;
 
@@ -122,6 +126,17 @@ public class FlexiblePublisher extends Recorder implements DependecyDeclarer, Ma
                     // error logs should be printed in ConditionalPublisher (or ConditionalExecutionStrategy)
                     wholeResult = false;
                 }
+            } catch(AbortException e) {
+                // This code doesn't run
+                // as Exceptions should be handled in ConditionalPublisher (or ConditionalExecutionStrategy)
+                listener.error(String.format(
+                        "[flexible-publish] %s aborted: %s",
+                        FlexiblePublisher.getBuildStepShortName(publisher.getPublisherList()),
+                        e.getMessage()
+                ));
+                LOGGER.log(Level.FINE, "[flexible-publish] %s aborted", e); // for diagnostic purpose.
+                build.setResult(Result.FAILURE);
+                wholeResult = false;
             } catch(Exception e) {
                 // This code doesn't run
                 // as Exceptions should be handled in ConditionalPublisher (or ConditionalExecutionStrategy)
