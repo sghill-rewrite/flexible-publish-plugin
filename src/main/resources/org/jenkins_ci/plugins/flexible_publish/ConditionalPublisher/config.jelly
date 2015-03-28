@@ -35,6 +35,7 @@
     <f:advanced>
     <f:dropdownDescriptorSelector title="${%runner}" field="runner" descriptors="${descriptor.buildStepRunners}"
             default="${descriptor.defaultBuildStepRunner}"/>
+    <f:dropdownDescriptorSelector title="${%Execution Strategy}" field="executionStrategy" descriptors="${descriptor.executionStrategies}" />
     </f:advanced>
     <j:if test="${descriptor.isMatrixProject(it)}">
       <f:optionalBlock inline="true" field="configuredAggregation" title="${%configureForParent}" checked="${instance.configuredForMatrixParent}">

@@ -52,6 +52,8 @@ import hudson.tasks.junit.TestResultAction.Data;
 import hudson.tasks.junit.JUnitResultArchiver;
 import hudson.util.DescribableList;
 
+import org.jenkins_ci.plugins.flexible_publish.strategy.FailAtEndExecutionStrategy;
+import org.jenkins_ci.plugins.flexible_publish.strategy.FailFastExecutionStrategy;
 import org.jenkins_ci.plugins.run_condition.BuildStepRunner;
 import org.jenkins_ci.plugins.run_condition.core.AlwaysRun;
 import org.jenkins_ci.plugins.run_condition.core.NeverRun;
@@ -550,5 +552,44 @@ public class ConfigurationTest extends HudsonTestCase {
             }
             
         }
+    }
+    
+    public void testExecutionStrategy() throws Exception {
+        FreeStyleProject p = createFreeStyleProject();
+        ConditionalPublisher conditionalPublisher1 = new ConditionalPublisher(
+                new AlwaysRun(),
+                Arrays.<BuildStep>asList(
+                        new BuildTrigger("anotherProject1", Result.SUCCESS)
+                ),
+                new BuildStepRunner.Run(), 
+                false,
+                null,
+                null,
+                new FailFastExecutionStrategy()
+        );
+        ConditionalPublisher conditionalPublisher2 = new ConditionalPublisher(
+                new NeverRun(),
+                Arrays.<BuildStep>asList(
+                        new ArtifactArchiver("**/*.jar", "some/bad.jar", true)
+                ),
+                new BuildStepRunner.DontRun(), 
+                false,
+                null,
+                null,
+                new FailAtEndExecutionStrategy()
+        );
+        FlexiblePublisher flexiblePublisher = new FlexiblePublisher(Arrays.asList(
+                conditionalPublisher1,
+                conditionalPublisher2
+        ));
+        p.getPublishersList().add(flexiblePublisher);
+        p.save();
+        
+        reconfigure(p);
+        
+        conditionalPublisher1 = p.getPublishersList().get(FlexiblePublisher.class).getPublishers().get(0);
+        assertEquals(FailFastExecutionStrategy.class, conditionalPublisher1.getExecutionStrategy().getClass());
+        conditionalPublisher2 = p.getPublishersList().get(FlexiblePublisher.class).getPublishers().get(1);
+        assertEquals(FailAtEndExecutionStrategy.class, conditionalPublisher2.getExecutionStrategy().getClass());
     }
 }

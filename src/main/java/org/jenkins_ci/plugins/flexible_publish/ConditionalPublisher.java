@@ -27,6 +27,9 @@ package org.jenkins_ci.plugins.flexible_publish;
 import hudson.DescriptorExtensionList;
 import hudson.Extension;
 import hudson.Launcher;
+import hudson.matrix.MatrixAggregatable;
+import hudson.matrix.MatrixAggregator;
+import hudson.matrix.MatrixBuild;
 import hudson.matrix.MatrixProject;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
@@ -46,6 +49,10 @@ import hudson.util.DescribableList;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
+import org.jenkins_ci.plugins.flexible_publish.builder.MarkPerformedBuilder;
+import org.jenkins_ci.plugins.flexible_publish.strategy.ConditionalExecutionStrategy;
+import org.jenkins_ci.plugins.flexible_publish.strategy.FailAtEndExecutionStrategy;
+import org.jenkins_ci.plugins.flexible_publish.strategy.FailFastExecutionStrategy;
 import org.jenkins_ci.plugins.run_condition.BuildStepRunner;
 import org.jenkins_ci.plugins.run_condition.RunCondition;
 import org.jenkins_ci.plugins.run_condition.core.AlwaysRun;
@@ -77,6 +84,8 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
     // if null, used condition and publlisher.
     private final RunCondition aggregationCondition;
     private final BuildStepRunner aggregationRunner;
+    
+    private /*final*/ ConditionalExecutionStrategy executionStrategy;
 
     @Deprecated
     public ConditionalPublisher(final RunCondition condition, final BuildStep publisher, final BuildStepRunner runner) {
@@ -107,9 +116,16 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
      * @param aggregationRunner
      * @see ConditionalPublisherDescriptor#newInstance(StaplerRequest, JSONObject)
      */
-    @DataBoundConstructor
+    @Deprecated
     public ConditionalPublisher(final RunCondition condition, final List<BuildStep> publisherList, final BuildStepRunner runner,
             boolean configuredAggregation, final RunCondition aggregationCondition, final BuildStepRunner aggregationRunner) {
+        this(condition, publisherList, runner, configuredAggregation, aggregationCondition, aggregationRunner, null);
+    }
+    
+    @DataBoundConstructor
+    public ConditionalPublisher(final RunCondition condition, final List<BuildStep> publisherList, final BuildStepRunner runner,
+            boolean configuredAggregation, final RunCondition aggregationCondition, final BuildStepRunner aggregationRunner,
+            ConditionalExecutionStrategy executionStrategy) {
         this.condition = condition;
         this.publisherList = publisherList;
         this.runner = runner;
@@ -120,6 +136,7 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
             this.aggregationCondition = null;
             this.aggregationRunner = null;
         }
+        this.executionStrategy = (executionStrategy != null)?executionStrategy:new FailAtEndExecutionStrategy();
     }
 
     public RunCondition getCondition() {
@@ -156,6 +173,10 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
         return getAggregationCondition() != null;
     }
 
+    public ConditionalExecutionStrategy getExecutionStrategy() {
+        return executionStrategy;
+    }
+
     public ConditionalPublisherDescriptor getDescriptor() {
         return Hudson.getInstance().getDescriptorByType(ConditionalPublisherDescriptor.class);
     }
@@ -168,23 +189,88 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
         return actions;
     }
 
+    private ConditionalExecutionStrategy.PublisherContext createExecutionStrategyContext() {
+        return new ConditionalExecutionStrategy.PublisherContext(
+                runner,
+                condition,
+                getPublisherList()
+        );
+    }
+
     public boolean prebuild(final AbstractBuild<?, ?> build, final BuildListener listener) {
-        for (BuildStep publisher: getPublisherList()) {
-            if (!runner.prebuild(condition, publisher, build, listener)) {
-                return false;
-            }
-        }
-        return true;
+        return getExecutionStrategy().prebuild(createExecutionStrategyContext(), build, listener);
     }
 
     public boolean perform(final AbstractBuild<?, ?> build, final Launcher launcher, final BuildListener listener)
                                                                                                 throws InterruptedException, IOException {
-        for (BuildStep publisher: getPublisherList()) {
-            if (!runner.perform(condition, publisher, build, launcher, listener)) {
-                return false;
+        return getExecutionStrategy().perform(createExecutionStrategyContext(), build, launcher, listener);
+    }
+
+    public ConditionalMatrixAggregator createAggregator(MatrixBuild build, Launcher launcher, BuildListener listener) {
+        if (isConfiguredAggregation()) {
+            // alerts if all publishers doesn't support aggregation
+            // even if configured for aggregation
+            boolean supportAggregation = false;
+            
+            for (BuildStep publisher: getPublisherList()) {
+                if (publisher instanceof MatrixAggregatable) {
+                    supportAggregation = true;
+                    break;
+                }
+            }
+            
+            if (!supportAggregation) {
+                listener.getLogger().println(String.format(
+                        "[%s] WARNING: Condition for Matrix Aggregation is configured for %s which does not support aggregation",
+                        getDescriptor().getDisplayName(),
+                        FlexiblePublisher.getBuildStepShortName(getPublisherList())
+                ));
+                return null;
             }
         }
-        return true;
+        // First, decide whether the condition is satisfied
+        // in the parent scope.
+        RunCondition cond;
+        BuildStepRunner runner;
+        if (isConfiguredAggregation()) {
+            cond = getAggregationCondition();
+            runner = getAggregationRunner();
+        } else {
+            cond = getCondition();
+            runner = getRunner();
+        }
+        
+        MarkPerformedBuilder mpb = new MarkPerformedBuilder();
+        boolean isSuccess = false;
+        try {
+            isSuccess = runner.perform(cond, mpb, build, launcher, listener);
+        } catch(Exception e) {
+            e.printStackTrace(listener.getLogger());
+        }
+        
+        if (!isSuccess || !mpb.isPerformed()) {
+            // condition is not satisfied.
+            // no need to run aggregation.
+            return null;
+        }
+        
+        List<MatrixAggregator> baseAggregatorList = new ArrayList<MatrixAggregator>();
+        for (BuildStep publisher: getPublisherList()) {
+            if(!(publisher instanceof MatrixAggregatable))
+            {
+                continue;
+            }
+            MatrixAggregator baseAggregator
+                = ((MatrixAggregatable)publisher).createAggregator(build, launcher, listener);
+            if (baseAggregator == null) {
+                continue;
+            }
+            baseAggregatorList.add(baseAggregator);
+        }
+        
+        return new ConditionalMatrixAggregator(
+            build, launcher, listener, this, baseAggregatorList
+        );
     }
 
     public Object readResolve() {
@@ -206,9 +292,18 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
         
         if (runner == null)
             runner = new BuildStepRunner.Fail();
+        
+        if (executionStrategy == null)
+        {
+            // for backward compatibility with <= 0.14.1.
+            // this is no longer the default behavior.
+            executionStrategy = new FailFastExecutionStrategy();
+        }
+        
         return this;
     }
 
+    
     @Extension
     public static class ConditionalPublisherDescriptor extends Descriptor<ConditionalPublisher> {
 
@@ -248,6 +343,10 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
             return (it instanceof MatrixProject);
         }
 
+        public List<? extends Descriptor<? extends ConditionalExecutionStrategy>> getExecutionStrategies() {
+            return ConditionalExecutionStrategy.all();
+        }
+
         /**
          * Build a new instance from parameters a user input in a configuration page.
          * 
@@ -276,6 +375,7 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
             boolean configuredAggregation = false;
             RunCondition aggregationCondition = null;
             BuildStepRunner aggregationRunner = null;
+            ConditionalExecutionStrategy executionStrategy = null;
             
             if (formData != null) {
                 condition = req.bindJSON(RunCondition.class, formData.getJSONObject("condition"));
@@ -295,6 +395,7 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
                             publisherList.add(buildstep);
                     }
                 }
+                executionStrategy = req.bindJSON(ConditionalExecutionStrategy.class, formData.getJSONObject("executionStrategy"));
             }
             return new ConditionalPublisher(
                     condition,
@@ -302,7 +403,8 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
                     runner,
                     configuredAggregation,
                     aggregationCondition,
-                    aggregationRunner
+                    aggregationRunner,
+                    executionStrategy
             );
         }
 
