@@ -207,26 +207,26 @@ public class ConditionalPublisher implements Describable<ConditionalPublisher>, 
     }
 
     public ConditionalMatrixAggregator createAggregator(MatrixBuild build, Launcher launcher, BuildListener listener) {
-        if (isConfiguredAggregation()) {
-            // alerts if all publishers doesn't support aggregation
-            // even if configured for aggregation
-            boolean supportAggregation = false;
-            
-            for (BuildStep publisher: getPublisherList()) {
-                if (publisher instanceof MatrixAggregatable) {
-                    supportAggregation = true;
-                    break;
-                }
+        boolean supportAggregation = false;
+        
+        for (BuildStep publisher: getPublisherList()) {
+            if (publisher instanceof MatrixAggregatable) {
+                supportAggregation = true;
+                break;
             }
-            
-            if (!supportAggregation) {
+        }
+        
+        if (!supportAggregation) {
+            if (isConfiguredAggregation()) {
+                // alerts if all publishers doesn't support aggregation
+                // even if configured for aggregation
                 listener.getLogger().println(String.format(
                         "[%s] WARNING: Condition for Matrix Aggregation is configured for %s which does not support aggregation",
                         getDescriptor().getDisplayName(),
                         FlexiblePublisher.getBuildStepShortName(getPublisherList())
                 ));
-                return null;
             }
+            return null;
         }
         // First, decide whether the condition is satisfied
         // in the parent scope.
