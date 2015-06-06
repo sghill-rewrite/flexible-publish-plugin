@@ -31,6 +31,7 @@ import java.util.concurrent.TimeUnit;
 import hudson.Extension;
 import hudson.Launcher;
 import hudson.matrix.AxisList;
+import hudson.matrix.Combination;
 import hudson.matrix.MatrixAggregatable;
 import hudson.matrix.MatrixAggregator;
 import hudson.matrix.MatrixConfiguration;
@@ -63,6 +64,7 @@ import org.jenkins_ci.plugins.flexible_publish.testutils.FileWriteBuilder;
 import org.jenkins_ci.plugins.run_condition.BuildStepRunner;
 import org.jenkins_ci.plugins.run_condition.core.AlwaysRun;
 import org.jenkins_ci.plugins.run_condition.core.StringsMatchCondition;
+import org.jvnet.hudson.test.Bug;
 import org.jvnet.hudson.test.HudsonTestCase;
 
 /**
@@ -949,6 +951,41 @@ public class MatrixAggregationTest extends HudsonTestCase {
             
             // AggregationRecorder isn't executed as a prior aggregator fails.
             assertNull(b.getAction(AggregationRecorder.AggregatorAction.class));
+        }
+    }
+    
+    @Bug(28585)
+    public void testOnlyNonaggregateble() throws Exception {
+        MatrixProject p = createMatrixProject();
+        AxisList axisList = new AxisList(new TextAxis("axis1", "value1", "value2"));
+        p.setAxes(axisList);
+        p.getBuildersList().add(new FileWriteBuilder("artifact.txt", "blahblahblah"));
+        p.getPublishersList().add(new FlexiblePublisher(Arrays.asList(
+                new ConditionalPublisher(
+                        new StringsMatchCondition("${axis1}", "value1", false),
+                        Arrays.<BuildStep>asList(
+                                new ArtifactArchiver("**/*", "", false)
+                        ),
+                        new BuildStepRunner.Fail(),
+                        false,
+                        null,
+                        null,
+                        new FailFastExecutionStrategy()
+                )
+        )));
+        
+        MatrixBuild build = p.scheduleBuild2(0).get();
+        assertBuildStatusSuccess(build);
+        
+        {
+            MatrixRun r = build.getRun(new Combination(axisList, "value1"));
+            assertBuildStatusSuccess(r);
+            assertEquals(Arrays.asList("artifact.txt"), Arrays.asList(r.getArtifactsDir().list()));
+        }
+        {
+            MatrixRun r = build.getRun(new Combination(axisList, "value2"));
+            assertBuildStatusSuccess(r);
+            assertNull(r.getArtifactsDir().list());
         }
     }
 }
