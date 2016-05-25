@@ -328,7 +328,7 @@ public class FlexiblePublisher extends Recorder implements DependecyDeclarer, Ma
                         new Function<BuildStep, String>() {
                             @Override
                             public String apply(BuildStep input) {
-                                return getBuildStepShortName(input);
+                                return (input != null) ? getBuildStepShortName(input) : "";
                             }
                         }
                 ),
