@@ -39,7 +39,7 @@ import java.util.List;
 
 public class DefaultPublisherDescriptorLister implements PublisherDescriptorLister {
 
-    public static final List<String> EXCLUSIONS = Arrays.asList(
+    private static final List<String> EXCLUSIONS = Arrays.asList(
             "org.jenkins_ci.plugins.flexible_publish.FlexiblePublisher.FlexiblePublisherDescriptor"
         );
 
