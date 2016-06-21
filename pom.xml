@@ -44,8 +44,6 @@
         <jenkins.version>1.425</jenkins.version>
         <jenkins-test-harness.version>1.425</jenkins-test-harness.version>
         <java.level>5</java.level>
-        <!-- old jenkins-test-harness doesn't allow concurrent tests -->
-        <concurrency>1</concurrency>
     </properties>
     
     <licenses>
@@ -75,6 +73,13 @@
                 <extensions>true</extensions>
                 <configuration>
                     <compatibleSinceVersion>0.15</compatibleSinceVersion>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- jenkins-test-harness < 1.545 doesn't support concurrent tests. -->
+                    <forkCount>1</forkCount>
                 </configuration>
             </plugin>
             <plugin>
