@@ -30,6 +30,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import com.gargoylesoftware.htmlunit.WebClient;
 import hudson.Launcher;
 import hudson.matrix.AxisList;
 import hudson.matrix.MatrixProject;
@@ -57,9 +58,10 @@ import org.jenkins_ci.plugins.flexible_publish.strategy.FailFastExecutionStrateg
 import org.jenkins_ci.plugins.run_condition.BuildStepRunner;
 import org.jenkins_ci.plugins.run_condition.core.AlwaysRun;
 import org.jenkins_ci.plugins.run_condition.core.NeverRun;
-import org.jvnet.hudson.test.Bug;
-import org.jvnet.hudson.test.HudsonTestCase;
-import org.jvnet.hudson.test.TestExtension;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.jvnet.hudson.test.*;
 import org.jvnet.hudson.test.recipes.LocalData;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -70,30 +72,61 @@ import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
+import static com.gargoylesoftware.htmlunit.html.HtmlFormUtil.submit;
+import static org.junit.Assert.*;
+
 /**
  *
  */
-public class ConfigurationTest extends HudsonTestCase {
+public class ConfigurationTest {
     private WebClient wc;
-    
-    @Override
-    protected void setUp() throws Exception {
-        super.setUp();
-        wc = new WebClient();
+
+    @Rule
+    public JenkinsRule j = new JenkinsRule();
+
+    @Before
+    public void setUp() throws Exception {
+        wc = j.createWebClient();
+    }
+
+    protected MatrixProject createMatrixProject() throws IOException {
+        MatrixProject p = j.createProject(MatrixProject.class);
+
+        // set up 2x2 matrix
+        AxisList axes = new AxisList();
+        axes.add(new TextAxis("db","mysql","oracle"));
+        axes.add(new TextAxis("direction","north","south"));
+        p.setAxes(axes);
+
+        return p;
+    }
+
+    protected FreeStyleProject createFreeStyleProject() throws IOException {
+        return createFreeStyleProject(createUniqueProjectName());
+    }
+
+    protected String createUniqueProjectName() {
+        return "test"+ j.jenkins.getItems().size();
+    }
+
+    protected FreeStyleProject createFreeStyleProject(String name) throws IOException {
+        return j.createProject(FreeStyleProject.class, name);
     }
     
     private void reconfigure(AbstractProject<?,?> p) throws Exception {
-        HtmlPage page = wc.getPage(p, "configure");
+        HtmlPage page = wc.getPage(p.getAbsoluteUrl() + "configure");
         submit(page.getFormByName("config"));
     }
-    
+
+    @Test
     public void testWithoutPublishers() throws Exception {
         // There is a case that just doing this fails with some versions of Jenkins...
         FreeStyleProject p = createFreeStyleProject();
         reconfigure(p);
     }
     
-    @Bug(19985)
+    @Test
+    @Issue("JENKINS-19985")
     public void testNullCondition() throws  Exception {
       FreeStyleProject p = createFreeStyleProject();
       ConditionalPublisher conditionalPublisher = new ConditionalPublisher(new AlwaysRun(),
@@ -105,9 +138,9 @@ public class ConfigurationTest extends HudsonTestCase {
       FlexiblePublisher fp = new FlexiblePublisher(Arrays.asList(conditionalPublisher));
       p.getPublishersList().add(fp);
       p.save();
-      jenkins.reload();
+      j.jenkins.reload();
 
-      DescribableList<Publisher, Descriptor<Publisher>> publishersList = ((FreeStyleProject) jenkins.getItemByFullName(p.getFullName()))
+      DescribableList<Publisher, Descriptor<Publisher>> publishersList = ((FreeStyleProject) j.jenkins.getItemByFullName(p.getFullName()))
               .getPublishersList();
       FlexiblePublisher publisher = publishersList.get(FlexiblePublisher.class);
       List<ConditionalPublisher> publishers = publisher.getPublishers();
@@ -115,7 +148,8 @@ public class ConfigurationTest extends HudsonTestCase {
       assertNotNull(conditionalPublisher.getPublisherList());
       assertTrue(conditionalPublisher.getPublisherList().isEmpty());
     }
-  
+
+    @Test
     public void testSingleCondition() throws Exception {
         FreeStyleProject p = createFreeStyleProject();
         BuildTrigger trigger = new BuildTrigger("anotherProject", Result.SUCCESS);
@@ -144,8 +178,9 @@ public class ConfigurationTest extends HudsonTestCase {
         assertEquals("anotherProject", trigger.getChildProjectsValue());
         assertEquals(Result.SUCCESS, trigger.getThreshold());
     }
-    
-    public void testMiltipleConditions() throws Exception {
+
+    @Test
+    public void testMultipleConditions() throws Exception {
         FreeStyleProject p = createFreeStyleProject();
         BuildTrigger trigger = new BuildTrigger("anotherProject", Result.SUCCESS);
         ArtifactArchiver archiver = new ArtifactArchiver("**/*.jar", "some/bad.jar", true);
@@ -195,10 +230,10 @@ public class ConfigurationTest extends HudsonTestCase {
         archiver = (ArtifactArchiver)conditionalPublisher2.getPublisher();
         assertEquals("**/*.jar", archiver.getArtifacts());
         assertEquals("some/bad.jar", archiver.getExcludes());
-        assertTrue(archiver.isLatestOnly());
     }
-    
-    public void testMiltipleConditionsMultipleActions() throws Exception {
+
+    @Test
+    public void testMultipleConditionsMultipleActions() throws Exception {
         FreeStyleProject p = createFreeStyleProject();
         ConditionalPublisher conditionalPublisher1 = new ConditionalPublisher(
                 new AlwaysRun(),
@@ -280,16 +315,15 @@ public class ConfigurationTest extends HudsonTestCase {
             ArtifactArchiver archiver = (ArtifactArchiver)conditionalPublisher2.getPublisherList().get(0);
             assertEquals("**/*.jar", archiver.getArtifacts());
             assertEquals("some/bad.jar", archiver.getExcludes());
-            assertTrue(archiver.isLatestOnly());
         }
         {
             ArtifactArchiver archiver = (ArtifactArchiver)conditionalPublisher2.getPublisherList().get(1);
             assertEquals("**/*.class", archiver.getArtifacts());
             assertEquals("some/bad.class", archiver.getExcludes());
-            assertFalse(archiver.isLatestOnly());
         }
     }
-    
+
+    @Test
     public void testMatrixWithAggregationCondition() throws Exception {
         MatrixProject p = createMatrixProject();
         p.setAxes(new AxisList(new TextAxis("axis1", "value1", "values2")));
@@ -319,7 +353,8 @@ public class ConfigurationTest extends HudsonTestCase {
         assertEquals("anotherProject", trigger.getChildProjectsValue());
         assertEquals(Result.SUCCESS, trigger.getThreshold());
     }
-    
+
+    @Test
     public void testMatrixWithoutAggregationCondition() throws Exception {
         MatrixProject p = createMatrixProject();
         p.setAxes(new AxisList(new TextAxis("axis1", "value1", "values2")));
@@ -349,7 +384,8 @@ public class ConfigurationTest extends HudsonTestCase {
         assertEquals("anotherProject", trigger.getChildProjectsValue());
         assertEquals(Result.SUCCESS, trigger.getThreshold());
     }
-    
+
+    @Test
     public void testMatrixEnableAggregationCondition() throws Exception {
         MatrixProject p = createMatrixProject();
         p.setAxes(new AxisList(new TextAxis("axis1", "value1", "values2")));
@@ -366,7 +402,7 @@ public class ConfigurationTest extends HudsonTestCase {
         p.getPublishersList().add(flexiblePublisher);
         p.save();
         
-        HtmlPage page = wc.getPage(p, "configure");
+        HtmlPage page = wc.getPage(p.getAbsoluteUrl() + "configure");
         HtmlForm configForm = page.getFormByName("config");
         List<HtmlInput> inputList = configForm.getInputsByName("_.configuredAggregation");
         assertNotNull(inputList);
@@ -389,7 +425,8 @@ public class ConfigurationTest extends HudsonTestCase {
         assertEquals("anotherProject", trigger.getChildProjectsValue());
         assertEquals(Result.SUCCESS, trigger.getThreshold());
     }
-    
+
+    @Test
     public void testMatrixDisableAggregationCondition() throws Exception {
         MatrixProject p = createMatrixProject();
         p.setAxes(new AxisList(new TextAxis("axis1", "value1", "values2")));
@@ -406,7 +443,7 @@ public class ConfigurationTest extends HudsonTestCase {
         p.getPublishersList().add(flexiblePublisher);
         p.save();
         
-        HtmlPage page = wc.getPage(p, "configure");
+        HtmlPage page = wc.getPage(p.getAbsoluteUrl() + "configure");
         HtmlForm configForm = page.getFormByName("config");
         List<HtmlInput> inputList = configForm.getInputsByName("_.configuredAggregation");
         assertNotNull(inputList);
@@ -430,44 +467,8 @@ public class ConfigurationTest extends HudsonTestCase {
         assertEquals("anotherProject", trigger.getChildProjectsValue());
         assertEquals(Result.SUCCESS, trigger.getThreshold());
     }
-    
-    public void testNoDataBoundConstructor() throws Exception {
-        // assert that Mailer does not have a constructor with DataBoundConstructor.
-        {
-            for(Constructor<?> c: Mailer.class.getConstructors()) {
-                assertFalse(c.isAnnotationPresent(DataBoundConstructor.class));
-            }
-        }
-        
-        FreeStyleProject p = createFreeStyleProject();
-        Mailer mailer = new Mailer();
-        mailer.recipients = "test@example.com";
-        mailer.dontNotifyEveryUnstableBuild = true;
-        mailer.sendToIndividuals = true;
-        
-        ConditionalPublisher conditionalPublisher = new ConditionalPublisher(
-                new AlwaysRun(),
-                mailer,
-                new BuildStepRunner.Run(), 
-                false,
-                null,
-                null
-        );
-        FlexiblePublisher flexiblePublisher = new FlexiblePublisher(Arrays.asList(conditionalPublisher));
-        p.getPublishersList().add(flexiblePublisher);
-        p.save();
-        
-        reconfigure(p);
-        
-        conditionalPublisher = p.getPublishersList().get(FlexiblePublisher.class).getPublishers().get(0);
-        mailer = (Mailer)conditionalPublisher.getPublisher();
-        assertEquals("test@example.com", mailer.recipients);
-        // mailer.dontNotifyEveryUnstableBuild does not restored, for it is treated in a special way.
-        // Detail: there can be multiple "mailer_notifyEveryUnstableBuild"s in a form.
-        //assertTrue(mailer.dontNotifyEveryUnstableBuild);
-        assertTrue(mailer.sendToIndividuals);
-    }
-    
+
+    @Test
     public void testNewInstanceDifferFromDataBoundConstructor() throws Exception {
         FreeStyleProject p = createFreeStyleProject();
         DescribableList<TestDataPublisher, Descriptor<TestDataPublisher>> testDataPublishers
@@ -498,7 +499,8 @@ public class ConfigurationTest extends HudsonTestCase {
         assertEquals(DummyTestDataPublisher.class, archiver.getTestDataPublishers().get(0).getClass());
     }
     
-    @Bug(26452)
+    @Issue("JENKINS-26452")
+    @Test
     public void testNoPublisher() throws Exception {
         FreeStyleProject p = createFreeStyleProject();
         
@@ -518,17 +520,18 @@ public class ConfigurationTest extends HudsonTestCase {
         // This doesn't fail till Jenkins 1.500.
         reconfigure(p);
         
-        assertBuildStatusSuccess(p.scheduleBuild2(0));
+        j.assertBuildStatusSuccess(p.scheduleBuild2(0));
         assertEquals(0, p.getPublishersList().get(FlexiblePublisher.class).getPublishers().get(0).getPublisherList().size());
     }
     
-    @Bug(26452)
+    @Issue("JENKINS-26452")
     @LocalData
+    @Test
     public void testRecoverFrom26452() throws Exception {
-        FreeStyleProject p = jenkins.getItemByFullName("affectedBy26452", FreeStyleProject.class);
+        FreeStyleProject p = j.jenkins.getItemByFullName("affectedBy26452", FreeStyleProject.class);
         assertNotNull(p);
         
-        assertBuildStatusSuccess(p.scheduleBuild2(0));
+        j.assertBuildStatusSuccess(p.scheduleBuild2(0));
         assertEquals(0, p.getPublishersList().get(FlexiblePublisher.class).getPublishers().get(0).getPublisherList().size());
     }
     
@@ -553,7 +556,8 @@ public class ConfigurationTest extends HudsonTestCase {
             
         }
     }
-    
+
+    @Test
     public void testExecutionStrategy() throws Exception {
         FreeStyleProject p = createFreeStyleProject();
         ConditionalPublisher conditionalPublisher1 = new ConditionalPublisher(

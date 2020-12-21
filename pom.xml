@@ -29,7 +29,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>2.9</version>
+        <version>4.14</version>
     </parent>
 
     <artifactId>flexible-publish</artifactId>
@@ -41,9 +41,9 @@
 
     <properties>
         <!-- DependencyGraph is final in Jenkins < 1.425 -->
-        <jenkins.version>1.425</jenkins.version>
-        <jenkins-test-harness.version>1.425</jenkins-test-harness.version>
-        <java.level>5</java.level>
+        <jenkins.version>2.235.5</jenkins.version>
+        <java.level>8</java.level>
+        <hpi.compatibleSinceVersion>0.15</hpi.compatibleSinceVersion>
     </properties>
     
     <licenses>
@@ -65,48 +65,28 @@
         </developer>
     </developers>
 
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.jenkins-ci.tools</groupId>
-                <artifactId>maven-hpi-plugin</artifactId>
-                <extensions>true</extensions>
-                <configuration>
-                    <compatibleSinceVersion>0.15</compatibleSinceVersion>
-                </configuration>
-            </plugin>
-            <plugin>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <configuration>
-                    <!-- jenkins-test-harness < 1.545 doesn't support concurrent tests. -->
-                    <forkCount>1</forkCount>
-                </configuration>
-            </plugin>
-            <plugin>
-                <artifactId>maven-enforcer-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>display-info</id>
-                        <configuration>
-                            <rules>
-                                <bannedDependencies>
-                                    <excludes>
-                                        <!-- <exclude>org.sonatype.sisu:sisu-guice</exclude> -->
-                                        <exclude>log4j:log4j:*:jar:compile</exclude>
-                                        <exclude>log4j:log4j:*:jar:runtime</exclude>
-                                        <exclude>commons-logging:commons-logging:*:jar:compile</exclude>
-                                        <exclude>commons-logging:commons-logging:*:jar:runtime</exclude>
-                                    </excludes>
-                                </bannedDependencies>
-                            </rules>
-                      </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.jenkins.tools.bom</groupId>
+                <artifactId>bom-2.235.x</artifactId>
+                <version>19</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>matrix-project</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>mailer</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>run-condition</artifactId>
@@ -127,7 +107,7 @@
     </scm>
     
     <issueManagement>
-        <system>JIRA</system>
+        <system>Jira</system>
         <url>http://issues.jenkins-ci.org/</url>
     </issueManagement>
     

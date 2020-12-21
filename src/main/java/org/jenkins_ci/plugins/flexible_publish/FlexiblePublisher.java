@@ -35,7 +35,6 @@ import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.Action;
 import hudson.model.BuildListener;
-import hudson.model.DependecyDeclarer;
 import hudson.model.DependencyGraph;
 import hudson.model.Describable;
 import hudson.model.Descriptor;
@@ -46,6 +45,7 @@ import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Publisher;
 import hudson.tasks.Recorder;
+import jenkins.model.DependencyDeclarer;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
@@ -67,7 +67,7 @@ import java.util.logging.Logger;
 
 import jenkins.model.Jenkins;
 
-public class FlexiblePublisher extends Recorder implements DependecyDeclarer, MatrixAggregatable{
+public class FlexiblePublisher extends Recorder implements DependencyDeclarer, MatrixAggregatable {
 
     public static final String PROMOTION_JOB_TYPE = "hudson.plugins.promoted_builds.PromotionProcess";
     private static final Logger LOGGER = Logger.getLogger(FlexiblePublisher.class.getName());
@@ -152,10 +152,12 @@ public class FlexiblePublisher extends Recorder implements DependecyDeclarer, Ma
     }
 
     private static void setResult(final AbstractBuild<?, ?> build, final Result result) {
-        if (build.getResult() == null)
+        Result buildResult = build.getResult();
+        if (buildResult == null) {
             build.setResult(result);
-        else
-            build.setResult(result.combine(build.getResult()));
+        } else {
+            build.setResult(result.combine(buildResult));
+        }
     }
 
     @Override
