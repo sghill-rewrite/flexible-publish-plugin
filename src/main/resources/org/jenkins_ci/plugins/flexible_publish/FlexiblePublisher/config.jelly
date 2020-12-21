@@ -24,21 +24,36 @@
   ~ THE SOFTWARE.
   -->
 
-<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:st="jelly:stapler">
-
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:local="local">
+    <d:taglib uri="local">
+        <d:tag name="blockWrapper">
+            <j:choose>
+                <j:when test="${divBasedFormLayout}">
+                    <div>
+                        <d:invokeBody/>
+                    </div>
+                </j:when>
+                <j:otherwise>
+                    <table width="100%" padding="0">
+                        <d:invokeBody/>
+                    </table>
+                </j:otherwise>
+            </j:choose>
+        </d:tag>
+    </d:taglib>
     <f:entry>
         <j:scope>
             <j:set var="descriptor" value="${descriptor.getPropertyType(instance,'publishers').itemTypeDescriptor}"/>
             <f:repeatable items="${instance.publishers}" var="instance" name="publishers" minimum="1" header="${%handle}" add="${%add}">
                 <fieldset>
-                    <table width="100%" padding="0">
+                    <local:blockWrapper>
                         <st:include page="config.jelly" class="${descriptor.clazz}"/>
                         <f:entry title="">
                             <div align="right" class="show-if-not-only">
                                 <f:repeatableDeleteButton value="${%delete}"/>
                             </div>
                         </f:entry>
-                    </table>
+                    </local:blockWrapper>
                 </fieldset>
             </f:repeatable>
         </j:scope>
