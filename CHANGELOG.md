@@ -1,13 +1,17 @@
 # Change log
 
-## 0.15.2 (Jun 06, 2015)
+## 0.15.2
+
+Release date: Jun 06, 2015
 
 -   FIXED: Conditions are evaluated for matrix parent builds even if
     contained publishers doesn't support aggregations
     ([JENKINS-28585](https://issues.jenkins-ci.org/browse/JENKINS-28585))
     -   Regression in 0.15.
 
-## 0.15.1 (Mar 29, 2015)
+## 0.15.1
+
+Release date: Mar 29, 2015
 
 -   No functionality changes from flexible-publish-0.15.
 -   Displays incompatibility warnings in the update center for
@@ -19,7 +23,9 @@
         Updateable Plugin
         List](https://wiki.jenkins.io/display/JENKINS/Marking+a+new+plugin+version+as+incompatible+with+older+versions#Markinganewpluginversionasincompatiblewitholderversions-ModificationtoDisplayofUpdateablePluginList)
 
-## 0.15 (Mar 28, 2015)
+## 0.15
+
+Release date: Mar 28, 2015
 
 -   Introduced "Execution strategy" which controls the behavior when a
     publisher fails.
@@ -66,7 +72,9 @@
                 Condition 1
                     Publisher 2
 
-## 0.14.1 (Jan 17, 2015)
+## 0.14.1
+
+Release date: Jan 17, 2015
 
 **This is a bug fix for 0.13.**  
 This should be released as 0.13.1, but I mistook. Sorry.
@@ -74,7 +82,9 @@ This should be released as 0.13.1, but I mistook. Sorry.
 -   FIXED: NPE if no publisher in conditional step
     ([JENKINS-26452](https://issues.jenkins-ci.org/browse/JENKINS-26452))
 
-## 0.13 (Nov 09, 2014)
+## 0.13
+
+Release date: Nov 09, 2014
 
 -   Supports multiple actions for a condition.
     ([JENKINS-22187](https://issues.jenkins-ci.org/browse/JENKINS-22187))
@@ -87,7 +97,9 @@ This should be released as 0.13.1, but I mistook. Sorry.
 -   Add support for upcoming $class annotation change
     ([JENKINS-25403](https://issues.jenkins-ci.org/browse/JENKINS-25403))
 
-## 0.12 (14/09/2013)
+## 0.12
+
+Release date: 14/09/2013
 
 -   Now support publishers with customized Descriptor\#newInstance
     ([JENKINS-19494](https://issues.jenkins-ci.org/browse/JENKINS-19494),
@@ -95,37 +107,49 @@ This should be released as 0.13.1, but I mistook. Sorry.
     [JENKINS-14597](https://issues.jenkins-ci.org/browse/JENKINS-14597),
     [JENKINS-19257](https://issues.jenkins-ci.org/browse/JENKINS-19257))
 
-## 0.11 (07/09/2013)
+## 0.11
+
+Release date: 07/09/2013
 
 -   Support for triggers
     ([JENKINS-19146](https://issues.jenkins-ci.org/browse/JENKINS-19146))
 -   Support for multi-configuration projects
     ([JENKINS-14494](https://issues.jenkins-ci.org/browse/JENKINS-14494))
 
-## 0.10 (03/07/2012)
+## 0.10
+
+Release date: 03/07/2012
 
 -   Fixed
     [JENKINS-13795](https://issues.jenkins-ci.org/browse/JENKINS-13795)
     NPE when configuring Flexible publish in a new job
 
-## 0.9 (14/02/2012)
+## 0.9
+
+Release date: 14/02/2012
 
 -   Stop interfering with the [Warnings
     Plugin](https://wiki.jenkins.io/display/JENKINS/Warnings+Plugin)'s
     radio buttons
     ([JENKINS-12692](https://issues.jenkins-ci.org/browse/JENKINS-12692))
 
-## 0.8 (17/01/2012)
+## 0.8
+
+Release date: 17/01/2012
 
 -   Exclude "Trigger parametrized build on other projects"
     [JENKINS-12418](https://issues.jenkins-ci.org/browse/JENKINS-12418)
 
-## 0.7 (14/11/2011)
+## 0.7
+
+Release date: 14/11/2011
 
 -   Mark the build as a failure if an action would have stopped the
     build
 
-## 0.6 (12/11/2011)
+## 0.6
+
+Release date: 12/11/2011
 
 -   Add some utility methods to allow publishers to be moved into
     Flexible publish from the script console
@@ -134,23 +158,33 @@ This should be released as 0.13.1, but I mistook. Sorry.
 -   Do not allow the actions to prevent other publishers from running
     (unless they throw an exception)
 
-## 0.5 (11/11/2011)
+## 0.5
+
+Release date: 11/11/2011
 
 -   Changed the EP interface
 
-## 0.4 (11/11/2011)
+## 0.4
+
+Release date: 11/11/2011
 
 -   Add extension to enable the list of publishers to be modified
 
-## 0.3 (10/11/2011)
+## 0.3
+
+Release date: 10/11/2011
 
 -   Updated a help file
 
-## 0.2 (09/11/2011)
+## 0.2
+
+Release date: 09/11/2011
 
 -   Enable the user to choose what will happen if the evaluation of a
     condition fails
 
-## 0.1 (07/11/2011)
+## 0.1
+
+Release date: 07/11/2011
 
 -   Initial release
