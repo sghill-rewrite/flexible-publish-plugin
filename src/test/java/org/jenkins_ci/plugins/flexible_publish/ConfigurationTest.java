@@ -30,7 +30,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import com.gargoylesoftware.htmlunit.WebClient;
 import hudson.Launcher;
 import hudson.matrix.AxisList;
 import hudson.matrix.MatrixProject;
@@ -61,7 +60,10 @@ import org.jenkins_ci.plugins.run_condition.core.NeverRun;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.jvnet.hudson.test.*;
+import org.jvnet.hudson.test.Issue;
+import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.JenkinsRule.WebClient;
+import org.jvnet.hudson.test.TestExtension;
 import org.jvnet.hudson.test.recipes.LocalData;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -91,13 +93,6 @@ public class ConfigurationTest {
 
     protected MatrixProject createMatrixProject() throws IOException {
         MatrixProject p = j.createProject(MatrixProject.class);
-
-        // set up 2x2 matrix
-        AxisList axes = new AxisList();
-        axes.add(new TextAxis("db","mysql","oracle"));
-        axes.add(new TextAxis("direction","north","south"));
-        p.setAxes(axes);
-
         return p;
     }
 
@@ -114,7 +109,7 @@ public class ConfigurationTest {
     }
     
     private void reconfigure(AbstractProject<?,?> p) throws Exception {
-        HtmlPage page = wc.getPage(p.getAbsoluteUrl() + "configure");
+        HtmlPage page = wc.getPage(p, "configure");
         submit(page.getFormByName("config"));
     }
 
@@ -402,7 +397,7 @@ public class ConfigurationTest {
         p.getPublishersList().add(flexiblePublisher);
         p.save();
         
-        HtmlPage page = wc.getPage(p.getAbsoluteUrl() + "configure");
+        HtmlPage page = wc.getPage(p, "configure");
         HtmlForm configForm = page.getFormByName("config");
         List<HtmlInput> inputList = configForm.getInputsByName("_.configuredAggregation");
         assertNotNull(inputList);
@@ -443,7 +438,7 @@ public class ConfigurationTest {
         p.getPublishersList().add(flexiblePublisher);
         p.save();
         
-        HtmlPage page = wc.getPage(p.getAbsoluteUrl() + "configure");
+        HtmlPage page = wc.getPage(p, "configure");
         HtmlForm configForm = page.getFormByName("config");
         List<HtmlInput> inputList = configForm.getInputsByName("_.configuredAggregation");
         assertNotNull(inputList);

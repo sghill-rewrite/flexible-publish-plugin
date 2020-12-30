@@ -129,13 +129,6 @@ public class MatrixAggregationTest extends HudsonTestCase {
 
     protected MatrixProject createMatrixProject() throws IOException {
         MatrixProject p = jenkins.createProject(MatrixProject.class, createUniqueProjectName());
-
-        // set up 2x2 matrix
-        AxisList axes = new AxisList();
-        axes.add(new TextAxis("db","mysql","oracle"));
-        axes.add(new TextAxis("direction","north","south"));
-        p.setAxes(axes);
-
         return p;
     }
     
