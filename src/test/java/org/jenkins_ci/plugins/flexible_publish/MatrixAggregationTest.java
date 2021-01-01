@@ -126,6 +126,11 @@ public class MatrixAggregationTest extends HudsonTestCase {
             assertNull(aggregator);
         }
     }
+
+    protected MatrixProject createMatrixProject() throws IOException {
+        MatrixProject p = jenkins.createProject(MatrixProject.class, createUniqueProjectName());
+        return p;
+    }
     
     public void testNotConfiguredForParent() throws Exception {
         MatrixProject p = createMatrixProject();
