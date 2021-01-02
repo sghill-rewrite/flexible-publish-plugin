@@ -34,6 +34,8 @@ import hudson.model.Descriptor;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 
+import org.jenkins_ci.plugins.run_condition.BuildStepRunner;
+
 /**
  * Used with {@link BuildStepRunner}.
  * 

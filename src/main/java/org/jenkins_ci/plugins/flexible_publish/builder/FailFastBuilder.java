@@ -49,6 +49,8 @@ import hudson.tasks.BuildStep;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Builder;
 
+import org.jenkins_ci.plugins.run_condition.BuildStepRunner;
+
 /**
  * Used with {@link BuildStepRunner}.
  * 

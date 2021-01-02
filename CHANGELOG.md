@@ -1,12 +1,14 @@
 # Change log
 
-## 0.16
+## 0.16.1
 
 Release date: Jan 02, 2021
 
 -   FIXED: Configuration UI is broken with Jenkins 2.264+
     ([JENKINS-64478](https://issues.jenkins.io/browse/JENKINS-64478))
 -   Targets Jenkins 2.235.5+ (was 1.425+).
+-   Note: flexible-publish-0.16 is not released for javadoc issue
+    ([JENKINS-64534](https://issues.jenkins.io/browse/JENKINS-64534))
 
 
 ## 0.15.2
