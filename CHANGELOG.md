@@ -1,5 +1,14 @@
 # Change log
 
+## 0.16
+
+Release date: Jan 02, 2021
+
+-   FIXED: Configuration UI is broken with Jenkins 2.264+
+    ([JENKINS-64478](https://issues.jenkins.io/browse/JENKINS-64478))
+-   Targets Jenkins 2.235.5+ (was 1.425+).
+
+
 ## 0.15.2
 
 Release date: Jun 06, 2015
