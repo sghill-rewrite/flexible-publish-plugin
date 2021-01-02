@@ -43,6 +43,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
  * Run all publishers even some of them fail.
  * To be exact, work as Jenkins core does:
  * <table>
+ *   <caption>Build phases and behaviors</caption>
  *   <tr>
  *     <th>prebuild</th>
  *     <td>fail fast</td>
